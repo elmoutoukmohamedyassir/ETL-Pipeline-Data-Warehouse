@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mexora — Dashboard Décisionnel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0b0f1a;--surf:#131929;--surf2:#1a2236;--border:#1f2d47;
+  --blue:#4f8ef7;--green:#3ecf8e;--amber:#f5a623;--red:#f7604d;
+  --text:#e2e8f0;--muted:#7a8aaa;--gold:#f5a623;--silver:#adb5bd;--bronze:#b87333;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+
+/* Header */
+header{background:var(--surf);border-bottom:1px solid var(--border);
+  padding:14px 28px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:var(--blue);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff}
+.logo-name{font-size:17px;font-weight:700}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.hbadge{background:rgba(79,142,247,.12);color:var(--blue);border:1px solid rgba(79,142,247,.25);
+  padding:4px 12px;border-radius:20px;font-size:11px}
+
+/* Nav */
+nav{background:var(--surf);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:2px;overflow-x:auto}
+.tab{padding:13px 18px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);
+  border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* Main */
+main{padding:24px 28px;max-width:1380px;margin:0 auto}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:20px;font-weight:700;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+
+/* KPI row */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:18px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.blue::before{background:var(--blue)}.kpi.green::before{background:var(--green)}
+.kpi.amber::before{background:var(--amber)}.kpi.red::before{background:var(--red)}
+.kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.kpi-value{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi-hint{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* Cards */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:20px}
+.card-full{grid-column:1/-1}
+.card-title{font-size:14px;font-weight:600;margin-bottom:3px}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.ch{position:relative;height:280px}.ch-lg{position:relative;height:340px}
+
+/* Filters */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.filters label{font-size:12px;color:var(--muted)}
+select{background:var(--surf2);color:var(--text);border:1px solid var(--border);
+  padding:7px 12px;border-radius:7px;font-size:13px;cursor:pointer;outline:none}
+select:focus{border-color:var(--blue)}
+
+/* Table */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 13px;font-size:11px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+td{padding:10px 13px;border-bottom:1px solid rgba(31,45,71,.4)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(79,142,247,.03)}
+.mono{font-variant-numeric:tabular-nums;font-size:13px}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.bg-elec{background:rgba(79,142,247,.15);color:var(--blue)}
+.bg-mode{background:rgba(245,166,35,.15);color:var(--amber)}
+.bg-ali{background:rgba(62,207,142,.15);color:var(--green)}
+.bg-gold{background:rgba(245,166,35,.18);color:var(--gold)}
+.bg-silver{background:rgba(173,181,189,.15);color:var(--silver)}
+.bg-bronze{background:rgba(184,115,51,.15);color:var(--bronze)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+
+/* Seg legend */
+.seg-legend{display:flex;flex-direction:column;gap:14px;padding:0 16px;justify-content:center}
+.seg-row{display:flex;align-items:center;gap:10px}
+.seg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Ramadan badge */
+.r-badge{display:inline-flex;align-items:center;gap:6px;
+  background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.25);
+  color:var(--amber);padding:6px 14px;border-radius:20px;font-size:12px;margin-bottom:16px}
+
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">MX</div>
+    <div><div class="logo-name">Mexora Analytics</div>
+         <div class="logo-sub">Dashboard Décisionnel — DWH v1.0</div></div>
+  </div>
+  <div class="hbadge">Données 2022–2024 | Tanger, Maroc</div>
+</header>
+
+<nav>
+  <div class="tab active" onclick="go('p1',this)">📈 CA Régions</div>
+  <div class="tab" onclick="go('p2',this)">🏆 Top Produits</div>
+  <div class="tab" onclick="go('p3',this)">👥 Segments Clients</div>
+  <div class="tab" onclick="go('p4',this)">↩ Taux Retour</div>
+  <div class="tab" onclick="go('p5',this)">🌙 Effet Ramadan</div>
+</nav>
+
+<main>
+
+<!-- ═══ PAGE 1 ═══════════════════════════════════════════════ -->
+<div class="page active" id="p1">
+  <div class="page-title">Évolution du CA par Région</div>
+  <div class="page-sub">Chiffre d'affaires TTC mensuel — commandes livrées uniquement</div>
+
+  <div class="kpis">
+    <div class="kpi blue"><div class="kpi-label">CA Total TTC</div>
+      <div class="kpi-value" id="k1">—</div><div class="kpi-hint">2022–2024 livrées</div></div>
+    <div class="kpi amber"><div class="kpi-label">Commandes livrées</div>
+      <div class="kpi-value" id="k2">—</div><div class="kpi-hint">sur ~49 000 totales</div></div>
+    <div class="kpi green"><div class="kpi-label">Clients uniques</div>
+      <div class="kpi-value" id="k3">—</div><div class="kpi-hint">ayant commandé</div></div>
+    <div class="kpi red"><div class="kpi-label">Taux de retour</div>
+      <div class="kpi-value" id="k4">—</div><div class="kpi-hint">toutes catégories</div></div>
+  </div>
+
+  <div class="filters">
+    <label>Année :</label>
+    <select id="p1y" onchange="rP1()">
+      <option value="all">Toutes</option>
+      <option value="2022">2022</option><option value="2023">2023</option>
+      <option value="2024" selected>2024</option>
+    </select>
+    <label>Région :</label>
+    <select id="p1r" onchange="rP1()"><option value="all">Toutes</option></select>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">CA mensuel par région</div>
+    <div class="card-sub">Évolution mois par mois selon les filtres sélectionnés</div>
+    <div class="ch-lg"><canvas id="c1l"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">CA total par région administrative</div>
+    <div class="card-sub">Classement sur la période filtrée</div>
+    <div class="ch"><canvas id="c1b"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ PAGE 2 ═══════════════════════════════════════════════ -->
+<div class="page" id="p2">
+  <div class="page-title">Top 10 Produits — Tanger</div>
+  <div class="page-sub">Classement par CA TTC pour la ville de Tanger, par trimestre</div>
+
+  <div class="filters">
+    <label>Année :</label>
+    <select id="p2y" onchange="rP2()">
+      <option value="2022">2022</option><option value="2023">2023</option>
+      <option value="2024" selected>2024</option>
+    </select>
+    <label>Trimestre :</label>
+    <select id="p2t" onchange="rP2()">
+      <option value="1">T1</option><option value="2">T2</option>
+      <option value="3">T3</option><option value="4" selected>T4</option>
+    </select>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Top 10 par CA — graphique</div>
+      <div class="card-sub">Barres horizontales triées par chiffre d'affaires TTC</div>
+      <div class="ch-lg"><canvas id="c2b"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 — tableau détaillé</div>
+      <div class="card-sub">Catégorie, CA TTC et quantités vendues</div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>#</th><th>Produit</th><th>Cat.</th><th>CA TTC</th><th>Qté</th></tr></thead>
+        <tbody id="t2"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE 3 ═══════════════════════════════════════════════ -->
+<div class="page" id="p3">
+  <div class="page-title">Analyse par Segment Client</div>
+  <div class="page-sub">Répartition Gold / Silver / Bronze — CA des 12 derniers mois</div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Répartition du CA par segment</div>
+      <div class="card-sub">Part du chiffre d'affaires total TTC</div>
+      <div style="display:flex;align-items:center;height:280px">
+        <div style="flex:1;position:relative;height:100%"><canvas id="c3d"></canvas></div>
+        <div class="seg-legend" id="sl"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Panier moyen TTC par segment</div>
+      <div class="card-sub">Valeur moyenne d'une commande livrée</div>
+      <div class="ch"><canvas id="c3p"></canvas></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Tableau récapitulatif</div>
+    <div class="card-sub">Nombre de commandes, CA total et panier moyen par segment</div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>Segment</th><th>Commandes</th><th>CA Total TTC</th><th>Panier Moyen</th><th>Part CA</th></tr></thead>
+      <tbody id="t3"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE 4 ═══════════════════════════════════════════════ -->
+<div class="page" id="p4">
+  <div class="page-title">Taux de Retour par Catégorie</div>
+  <div class="page-sub">Ratio retournées / (livrées + retournées) — seuils alerte : rouge &gt; 5%, orange 3-5%, vert &lt; 3%</div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Taux de retour par catégorie</div>
+      <div class="card-sub">Avec lignes de seuil d'alerte</div>
+      <div class="ch"><canvas id="c4b"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Détail par catégorie</div>
+      <div class="card-sub">Volumes et indicateur d'alerte</div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Catégorie</th><th>Livrées</th><th>Retournées</th><th>Taux %</th><th>Alerte</th></tr></thead>
+        <tbody id="t4"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE 5 ═══════════════════════════════════════════════ -->
+<div class="page" id="p5">
+  <div class="page-title">Effet Ramadan — Alimentation</div>
+  <div class="page-sub">Sur-/sous-performance des ventes d'alimentation pendant le Ramadan vs la moyenne mensuelle</div>
+
+  <div class="r-badge">🌙 Périodes Ramadan analysées : Avr 2022 · Mars-Avr 2023 · Mars 2024</div>
+
+  <div class="filters">
+    <label>Année :</label>
+    <select id="p5y" onchange="rP5()">
+      <option value="all" selected>Toutes</option>
+      <option value="2022">2022</option><option value="2023">2023</option>
+      <option value="2024">2024</option>
+    </select>
+  </div>
+
+  <div class="card card-full" style="margin-bottom:16px">
+    <div class="card-title">CA Alimentation mensuel — mois Ramadan en or</div>
+    <div class="card-sub">Les barres dorées correspondent aux périodes Ramadan identifiées dans dim_temps</div>
+    <div class="ch-lg"><canvas id="c5b"></canvas></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Indice Ramadan vs moyenne hors-Ramadan</div>
+      <div class="card-sub">100 = performance normale. &gt;100 = sur-performance Ramadan.</div>
+      <div class="ch"><canvas id="c5i"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Insights analytiques</div>
+      <div class="card-sub">Conclusions sur l'effet Ramadan dans les données Mexora</div>
+      <div id="ins" style="padding:4px 0;line-height:1.85;font-size:14px"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+const DATA = {"kpis":{"ca_total":1462168399,"nb_commandes":29478,"nb_clients":2878,"panier_moyen":49602,"taux_retour":14.2},"q1":[{"annee":2022,"mois":1,"libelle_mois":"Janvier","region_admin":"Béni Mellal-Khénifra","montant_ttc":2536339.98},{"annee":2022,"mois":1,"libelle_mois":"Janvier","region_admin":"Casablanca-Settat","montant_ttc":5337095.65},{"annee":2022,"mois":1,"libelle_mois":"Janvier","region_admin":"Drâa-Tafilalet","montant_ttc":2304613.12},{"annee":2022,"mois":1,"libelle_mois":"Janvier","region_admin":"Fès-Meknès","montant_ttc":7107086.12},{"annee":2022,"mois":1,"libelle_mois":"Janvier","region_admin":"Marrakech-Safi","montant_ttc":4689250.7},{"annee":2022,"mois":1,"libelle_mois":"Janvier","region_admin":"Oriental","montant_ttc":6181152.1899999995},{"annee":2022,"mois":1,"libelle_mois":"Janvier","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5875658.7},{"annee":2022,"mois":1,"libelle_mois":"Janvier","region_admin":"Souss-Massa","montant_ttc":2986695.98},{"annee":2022,"mois":1,"libelle_mois":"Janvier","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":3949761.16},{"annee":2022,"mois":2,"libelle_mois":"Février","region_admin":"Béni Mellal-Khénifra","montant_ttc":2325386.51},{"annee":2022,"mois":2,"libelle_mois":"Février","region_admin":"Casablanca-Settat","montant_ttc":5406307.12},{"annee":2022,"mois":2,"libelle_mois":"Février","region_admin":"Drâa-Tafilalet","montant_ttc":2065586.11},{"annee":2022,"mois":2,"libelle_mois":"Février","region_admin":"Fès-Meknès","montant_ttc":4929651.83},{"annee":2022,"mois":2,"libelle_mois":"Février","region_admin":"Marrakech-Safi","montant_ttc":5656070.98},{"annee":2022,"mois":2,"libelle_mois":"Février","region_admin":"Oriental","montant_ttc":4485486.57},{"annee":2022,"mois":2,"libelle_mois":"Février","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5420531.57},{"annee":2022,"mois":2,"libelle_mois":"Février","region_admin":"Souss-Massa","montant_ttc":2033150.79},{"annee":2022,"mois":2,"libelle_mois":"Février","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5277638.81},{"annee":2022,"mois":3,"libelle_mois":"Mars","region_admin":"Béni Mellal-Khénifra","montant_ttc":2287256.0},{"annee":2022,"mois":3,"libelle_mois":"Mars","region_admin":"Casablanca-Settat","montant_ttc":7376849.46},{"annee":2022,"mois":3,"libelle_mois":"Mars","region_admin":"Drâa-Tafilalet","montant_ttc":2626330.29},{"annee":2022,"mois":3,"libelle_mois":"Mars","region_admin":"Fès-Meknès","montant_ttc":5010640.84},{"annee":2022,"mois":3,"libelle_mois":"Mars","region_admin":"Marrakech-Safi","montant_ttc":5539836.1},{"annee":2022,"mois":3,"libelle_mois":"Mars","region_admin":"Oriental","montant_ttc":6434559.62},{"annee":2022,"mois":3,"libelle_mois":"Mars","region_admin":"Rabat-Salé-Kénitra","montant_ttc":6247110.35},{"annee":2022,"mois":3,"libelle_mois":"Mars","region_admin":"Souss-Massa","montant_ttc":2341572.58},{"annee":2022,"mois":3,"libelle_mois":"Mars","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":6830338.22},{"annee":2022,"mois":4,"libelle_mois":"Avril","region_admin":"Béni Mellal-Khénifra","montant_ttc":2349965.38},{"annee":2022,"mois":4,"libelle_mois":"Avril","region_admin":"Casablanca-Settat","montant_ttc":5147603.57},{"annee":2022,"mois":4,"libelle_mois":"Avril","region_admin":"Drâa-Tafilalet","montant_ttc":2969987.13},{"annee":2022,"mois":4,"libelle_mois":"Avril","region_admin":"Fès-Meknès","montant_ttc":4316622.19},{"annee":2022,"mois":4,"libelle_mois":"Avril","region_admin":"Marrakech-Safi","montant_ttc":5504530.56},{"annee":2022,"mois":4,"libelle_mois":"Avril","region_admin":"Oriental","montant_ttc":5435364.02},{"annee":2022,"mois":4,"libelle_mois":"Avril","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5287039.96},{"annee":2022,"mois":4,"libelle_mois":"Avril","region_admin":"Souss-Massa","montant_ttc":3422516.21},{"annee":2022,"mois":4,"libelle_mois":"Avril","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":4985067.96},{"annee":2022,"mois":5,"libelle_mois":"Mai","region_admin":"Béni Mellal-Khénifra","montant_ttc":3016834.8},{"annee":2022,"mois":5,"libelle_mois":"Mai","region_admin":"Casablanca-Settat","montant_ttc":5776203.82},{"annee":2022,"mois":5,"libelle_mois":"Mai","region_admin":"Drâa-Tafilalet","montant_ttc":1693985.15},{"annee":2022,"mois":5,"libelle_mois":"Mai","region_admin":"Fès-Meknès","montant_ttc":6029917.0},{"annee":2022,"mois":5,"libelle_mois":"Mai","region_admin":"Marrakech-Safi","montant_ttc":5928678.14},{"annee":2022,"mois":5,"libelle_mois":"Mai","region_admin":"Oriental","montant_ttc":5686411.2},{"annee":2022,"mois":5,"libelle_mois":"Mai","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5864236.56},{"annee":2022,"mois":5,"libelle_mois":"Mai","region_admin":"Souss-Massa","montant_ttc":2683757.89},{"annee":2022,"mois":5,"libelle_mois":"Mai","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5597817.67},{"annee":2022,"mois":6,"libelle_mois":"Juin","region_admin":"Béni Mellal-Khénifra","montant_ttc":2664701.25},{"annee":2022,"mois":6,"libelle_mois":"Juin","region_admin":"Casablanca-Settat","montant_ttc":5208488.2299999995},{"annee":2022,"mois":6,"libelle_mois":"Juin","region_admin":"Drâa-Tafilalet","montant_ttc":2537075.19},{"annee":2022,"mois":6,"libelle_mois":"Juin","region_admin":"Fès-Meknès","montant_ttc":4813441.95},{"annee":2022,"mois":6,"libelle_mois":"Juin","region_admin":"Marrakech-Safi","montant_ttc":5394562.81},{"annee":2022,"mois":6,"libelle_mois":"Juin","region_admin":"Oriental","montant_ttc":6157210.91},{"annee":2022,"mois":6,"libelle_mois":"Juin","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5250871.41},{"annee":2022,"mois":6,"libelle_mois":"Juin","region_admin":"Souss-Massa","montant_ttc":2009020.6600000001},{"annee":2022,"mois":6,"libelle_mois":"Juin","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":6489042.07},{"annee":2022,"mois":7,"libelle_mois":"Juillet","region_admin":"Béni Mellal-Khénifra","montant_ttc":2739707.75},{"annee":2022,"mois":7,"libelle_mois":"Juillet","region_admin":"Casablanca-Settat","montant_ttc":5394516.01},{"annee":2022,"mois":7,"libelle_mois":"Juillet","region_admin":"Drâa-Tafilalet","montant_ttc":2238510.83},{"annee":2022,"mois":7,"libelle_mois":"Juillet","region_admin":"Fès-Meknès","montant_ttc":5365953.86},{"annee":2022,"mois":7,"libelle_mois":"Juillet","region_admin":"Marrakech-Safi","montant_ttc":5334732.23},{"annee":2022,"mois":7,"libelle_mois":"Juillet","region_admin":"Oriental","montant_ttc":5965807.19},{"annee":2022,"mois":7,"libelle_mois":"Juillet","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5421456.38},{"annee":2022,"mois":7,"libelle_mois":"Juillet","region_admin":"Souss-Massa","montant_ttc":2555767.41},{"annee":2022,"mois":7,"libelle_mois":"Juillet","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":4651349.84},{"annee":2022,"mois":8,"libelle_mois":"Août","region_admin":"Béni Mellal-Khénifra","montant_ttc":2308748.87},{"annee":2022,"mois":8,"libelle_mois":"Août","region_admin":"Casablanca-Settat","montant_ttc":5207076.01},{"annee":2022,"mois":8,"libelle_mois":"Août","region_admin":"Drâa-Tafilalet","montant_ttc":2823302.07},{"annee":2022,"mois":8,"libelle_mois":"Août","region_admin":"Fès-Meknès","montant_ttc":6312176.21},{"annee":2022,"mois":8,"libelle_mois":"Août","region_admin":"Marrakech-Safi","montant_ttc":6440475.05},{"annee":2022,"mois":8,"libelle_mois":"Août","region_admin":"Oriental","montant_ttc":5122189.25},{"annee":2022,"mois":8,"libelle_mois":"Août","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4130087.97},{"annee":2022,"mois":8,"libelle_mois":"Août","region_admin":"Souss-Massa","montant_ttc":2958257.15},{"annee":2022,"mois":8,"libelle_mois":"Août","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":6140076.72},{"annee":2022,"mois":9,"libelle_mois":"Septembre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2568657.34},{"annee":2022,"mois":9,"libelle_mois":"Septembre","region_admin":"Casablanca-Settat","montant_ttc":5299366.14},{"annee":2022,"mois":9,"libelle_mois":"Septembre","region_admin":"Drâa-Tafilalet","montant_ttc":2295668.7800000003},{"annee":2022,"mois":9,"libelle_mois":"Septembre","region_admin":"Fès-Meknès","montant_ttc":4821047.78},{"annee":2022,"mois":9,"libelle_mois":"Septembre","region_admin":"Marrakech-Safi","montant_ttc":5857062.49},{"annee":2022,"mois":9,"libelle_mois":"Septembre","region_admin":"Oriental","montant_ttc":5692864.4},{"annee":2022,"mois":9,"libelle_mois":"Septembre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5867323.33},{"annee":2022,"mois":9,"libelle_mois":"Septembre","region_admin":"Souss-Massa","montant_ttc":2605249.96},{"annee":2022,"mois":9,"libelle_mois":"Septembre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5866417.87},{"annee":2022,"mois":10,"libelle_mois":"Octobre","region_admin":"Béni Mellal-Khénifra","montant_ttc":3139175.81},{"annee":2022,"mois":10,"libelle_mois":"Octobre","region_admin":"Casablanca-Settat","montant_ttc":5012108.97},{"annee":2022,"mois":10,"libelle_mois":"Octobre","region_admin":"Drâa-Tafilalet","montant_ttc":1952975.42},{"annee":2022,"mois":10,"libelle_mois":"Octobre","region_admin":"Fès-Meknès","montant_ttc":5086215.45},{"annee":2022,"mois":10,"libelle_mois":"Octobre","region_admin":"Marrakech-Safi","montant_ttc":5456572.28},{"annee":2022,"mois":10,"libelle_mois":"Octobre","region_admin":"Oriental","montant_ttc":6262550.92},{"annee":2022,"mois":10,"libelle_mois":"Octobre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5056538.47},{"annee":2022,"mois":10,"libelle_mois":"Octobre","region_admin":"Souss-Massa","montant_ttc":3317731.78},{"annee":2022,"mois":10,"libelle_mois":"Octobre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5035129.31},{"annee":2022,"mois":11,"libelle_mois":"Novembre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2342562.78},{"annee":2022,"mois":11,"libelle_mois":"Novembre","region_admin":"Casablanca-Settat","montant_ttc":4812097.74},{"annee":2022,"mois":11,"libelle_mois":"Novembre","region_admin":"Drâa-Tafilalet","montant_ttc":2439053.59},{"annee":2022,"mois":11,"libelle_mois":"Novembre","region_admin":"Fès-Meknès","montant_ttc":6524188.32},{"annee":2022,"mois":11,"libelle_mois":"Novembre","region_admin":"Marrakech-Safi","montant_ttc":5321299.14},{"annee":2022,"mois":11,"libelle_mois":"Novembre","region_admin":"Oriental","montant_ttc":5527201.54},{"annee":2022,"mois":11,"libelle_mois":"Novembre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":3833274.5},{"annee":2022,"mois":11,"libelle_mois":"Novembre","region_admin":"Souss-Massa","montant_ttc":2735043.23},{"annee":2022,"mois":11,"libelle_mois":"Novembre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5150892.67},{"annee":2022,"mois":12,"libelle_mois":"Décembre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2225045.82},{"annee":2022,"mois":12,"libelle_mois":"Décembre","region_admin":"Casablanca-Settat","montant_ttc":5086817.46},{"annee":2022,"mois":12,"libelle_mois":"Décembre","region_admin":"Drâa-Tafilalet","montant_ttc":3333693.22},{"annee":2022,"mois":12,"libelle_mois":"Décembre","region_admin":"Fès-Meknès","montant_ttc":5945931.19},{"annee":2022,"mois":12,"libelle_mois":"Décembre","region_admin":"Marrakech-Safi","montant_ttc":4129572.04},{"annee":2022,"mois":12,"libelle_mois":"Décembre","region_admin":"Oriental","montant_ttc":6866687.7299999995},{"annee":2022,"mois":12,"libelle_mois":"Décembre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4647263.94},{"annee":2022,"mois":12,"libelle_mois":"Décembre","region_admin":"Souss-Massa","montant_ttc":2899461.2600000002},{"annee":2022,"mois":12,"libelle_mois":"Décembre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5636934.05},{"annee":2023,"mois":1,"libelle_mois":"Janvier","region_admin":"Béni Mellal-Khénifra","montant_ttc":2054256.54},{"annee":2023,"mois":1,"libelle_mois":"Janvier","region_admin":"Casablanca-Settat","montant_ttc":5531624.36},{"annee":2023,"mois":1,"libelle_mois":"Janvier","region_admin":"Drâa-Tafilalet","montant_ttc":3063350.71},{"annee":2023,"mois":1,"libelle_mois":"Janvier","region_admin":"Fès-Meknès","montant_ttc":5557818.43},{"annee":2023,"mois":1,"libelle_mois":"Janvier","region_admin":"Marrakech-Safi","montant_ttc":6987374.2},{"annee":2023,"mois":1,"libelle_mois":"Janvier","region_admin":"Oriental","montant_ttc":6552280.04},{"annee":2023,"mois":1,"libelle_mois":"Janvier","region_admin":"Rabat-Salé-Kénitra","montant_ttc":6285845.35},{"annee":2023,"mois":1,"libelle_mois":"Janvier","region_admin":"Souss-Massa","montant_ttc":3260853.69},{"annee":2023,"mois":1,"libelle_mois":"Janvier","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":6820739.59},{"annee":2023,"mois":2,"libelle_mois":"Février","region_admin":"Béni Mellal-Khénifra","montant_ttc":2236922.5100000002},{"annee":2023,"mois":2,"libelle_mois":"Février","region_admin":"Casablanca-Settat","montant_ttc":3529596.16},{"annee":2023,"mois":2,"libelle_mois":"Février","region_admin":"Drâa-Tafilalet","montant_ttc":2837574.66},{"annee":2023,"mois":2,"libelle_mois":"Février","region_admin":"Fès-Meknès","montant_ttc":4758250.35},{"annee":2023,"mois":2,"libelle_mois":"Février","region_admin":"Marrakech-Safi","montant_ttc":5514256.17},{"annee":2023,"mois":2,"libelle_mois":"Février","region_admin":"Oriental","montant_ttc":5015779.32},{"annee":2023,"mois":2,"libelle_mois":"Février","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4656668.11},{"annee":2023,"mois":2,"libelle_mois":"Février","region_admin":"Souss-Massa","montant_ttc":2687420.89},{"annee":2023,"mois":2,"libelle_mois":"Février","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":4856238.58},{"annee":2023,"mois":3,"libelle_mois":"Mars","region_admin":"Béni Mellal-Khénifra","montant_ttc":2873921.7800000003},{"annee":2023,"mois":3,"libelle_mois":"Mars","region_admin":"Casablanca-Settat","montant_ttc":5654923.36},{"annee":2023,"mois":3,"libelle_mois":"Mars","region_admin":"Drâa-Tafilalet","montant_ttc":2407003.41},{"annee":2023,"mois":3,"libelle_mois":"Mars","region_admin":"Fès-Meknès","montant_ttc":4565018.57},{"annee":2023,"mois":3,"libelle_mois":"Mars","region_admin":"Marrakech-Safi","montant_ttc":5734123.09},{"annee":2023,"mois":3,"libelle_mois":"Mars","region_admin":"Oriental","montant_ttc":5386252.47},{"annee":2023,"mois":3,"libelle_mois":"Mars","region_admin":"Rabat-Salé-Kénitra","montant_ttc":6297206.21},{"annee":2023,"mois":3,"libelle_mois":"Mars","region_admin":"Souss-Massa","montant_ttc":3570671.8},{"annee":2023,"mois":3,"libelle_mois":"Mars","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5827237.86},{"annee":2023,"mois":4,"libelle_mois":"Avril","region_admin":"Béni Mellal-Khénifra","montant_ttc":3066769.25},{"annee":2023,"mois":4,"libelle_mois":"Avril","region_admin":"Casablanca-Settat","montant_ttc":6396961.13},{"annee":2023,"mois":4,"libelle_mois":"Avril","region_admin":"Drâa-Tafilalet","montant_ttc":1771365.3599999999},{"annee":2023,"mois":4,"libelle_mois":"Avril","region_admin":"Fès-Meknès","montant_ttc":5817908.62},{"annee":2023,"mois":4,"libelle_mois":"Avril","region_admin":"Marrakech-Safi","montant_ttc":4954346.94},{"annee":2023,"mois":4,"libelle_mois":"Avril","region_admin":"Oriental","montant_ttc":5364084.51},{"annee":2023,"mois":4,"libelle_mois":"Avril","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4330927.8},{"annee":2023,"mois":4,"libelle_mois":"Avril","region_admin":"Souss-Massa","montant_ttc":2413662.47},{"annee":2023,"mois":4,"libelle_mois":"Avril","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":4640371.03},{"annee":2023,"mois":5,"libelle_mois":"Mai","region_admin":"Béni Mellal-Khénifra","montant_ttc":2292581.03},{"annee":2023,"mois":5,"libelle_mois":"Mai","region_admin":"Casablanca-Settat","montant_ttc":5209388.07},{"annee":2023,"mois":5,"libelle_mois":"Mai","region_admin":"Drâa-Tafilalet","montant_ttc":2480334.27},{"annee":2023,"mois":5,"libelle_mois":"Mai","region_admin":"Fès-Meknès","montant_ttc":6097388.51},{"annee":2023,"mois":5,"libelle_mois":"Mai","region_admin":"Marrakech-Safi","montant_ttc":6147909.19},{"annee":2023,"mois":5,"libelle_mois":"Mai","region_admin":"Oriental","montant_ttc":6081310.98},{"annee":2023,"mois":5,"libelle_mois":"Mai","region_admin":"Rabat-Salé-Kénitra","montant_ttc":6196033.71},{"annee":2023,"mois":5,"libelle_mois":"Mai","region_admin":"Souss-Massa","montant_ttc":2777486.74},{"annee":2023,"mois":5,"libelle_mois":"Mai","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5186011.07},{"annee":2023,"mois":6,"libelle_mois":"Juin","region_admin":"Béni Mellal-Khénifra","montant_ttc":2761394.8},{"annee":2023,"mois":6,"libelle_mois":"Juin","region_admin":"Casablanca-Settat","montant_ttc":6070129.15},{"annee":2023,"mois":6,"libelle_mois":"Juin","region_admin":"Drâa-Tafilalet","montant_ttc":2962298.48},{"annee":2023,"mois":6,"libelle_mois":"Juin","region_admin":"Fès-Meknès","montant_ttc":5256218.49},{"annee":2023,"mois":6,"libelle_mois":"Juin","region_admin":"Marrakech-Safi","montant_ttc":5771213.28},{"annee":2023,"mois":6,"libelle_mois":"Juin","region_admin":"Oriental","montant_ttc":4735638.23},{"annee":2023,"mois":6,"libelle_mois":"Juin","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5015683.18},{"annee":2023,"mois":6,"libelle_mois":"Juin","region_admin":"Souss-Massa","montant_ttc":2519182.86},{"annee":2023,"mois":6,"libelle_mois":"Juin","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5836097.28},{"annee":2023,"mois":7,"libelle_mois":"Juillet","region_admin":"Béni Mellal-Khénifra","montant_ttc":3000315.55},{"annee":2023,"mois":7,"libelle_mois":"Juillet","region_admin":"Casablanca-Settat","montant_ttc":4859682.08},{"annee":2023,"mois":7,"libelle_mois":"Juillet","region_admin":"Drâa-Tafilalet","montant_ttc":3666019.97},{"annee":2023,"mois":7,"libelle_mois":"Juillet","region_admin":"Fès-Meknès","montant_ttc":5714384.36},{"annee":2023,"mois":7,"libelle_mois":"Juillet","region_admin":"Marrakech-Safi","montant_ttc":5609339.84},{"annee":2023,"mois":7,"libelle_mois":"Juillet","region_admin":"Oriental","montant_ttc":4891373.13},{"annee":2023,"mois":7,"libelle_mois":"Juillet","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5550237.4399999995},{"annee":2023,"mois":7,"libelle_mois":"Juillet","region_admin":"Souss-Massa","montant_ttc":3299362.04},{"annee":2023,"mois":7,"libelle_mois":"Juillet","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":4631939.59},{"annee":2023,"mois":8,"libelle_mois":"Août","region_admin":"Béni Mellal-Khénifra","montant_ttc":2774078.39},{"annee":2023,"mois":8,"libelle_mois":"Août","region_admin":"Casablanca-Settat","montant_ttc":5193694.2299999995},{"annee":2023,"mois":8,"libelle_mois":"Août","region_admin":"Drâa-Tafilalet","montant_ttc":2850201.36},{"annee":2023,"mois":8,"libelle_mois":"Août","region_admin":"Fès-Meknès","montant_ttc":5372261.7},{"annee":2023,"mois":8,"libelle_mois":"Août","region_admin":"Marrakech-Safi","montant_ttc":4939747.9},{"annee":2023,"mois":8,"libelle_mois":"Août","region_admin":"Oriental","montant_ttc":6022546.18},{"annee":2023,"mois":8,"libelle_mois":"Août","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4260177.71},{"annee":2023,"mois":8,"libelle_mois":"Août","region_admin":"Souss-Massa","montant_ttc":2345728.17},{"annee":2023,"mois":8,"libelle_mois":"Août","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":6140065.0},{"annee":2023,"mois":9,"libelle_mois":"Septembre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2423627.2600000002},{"annee":2023,"mois":9,"libelle_mois":"Septembre","region_admin":"Casablanca-Settat","montant_ttc":5981993.79},{"annee":2023,"mois":9,"libelle_mois":"Septembre","region_admin":"Drâa-Tafilalet","montant_ttc":3199430.64},{"annee":2023,"mois":9,"libelle_mois":"Septembre","region_admin":"Fès-Meknès","montant_ttc":4162555.97},{"annee":2023,"mois":9,"libelle_mois":"Septembre","region_admin":"Marrakech-Safi","montant_ttc":5138897.43},{"annee":2023,"mois":9,"libelle_mois":"Septembre","region_admin":"Oriental","montant_ttc":4088950.57},{"annee":2023,"mois":9,"libelle_mois":"Septembre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5318706.83},{"annee":2023,"mois":9,"libelle_mois":"Septembre","region_admin":"Souss-Massa","montant_ttc":2731808.4},{"annee":2023,"mois":9,"libelle_mois":"Septembre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":4941222.61},{"annee":2023,"mois":10,"libelle_mois":"Octobre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2370042.9899999998},{"annee":2023,"mois":10,"libelle_mois":"Octobre","region_admin":"Casablanca-Settat","montant_ttc":4801616.77},{"annee":2023,"mois":10,"libelle_mois":"Octobre","region_admin":"Drâa-Tafilalet","montant_ttc":2426612.64},{"annee":2023,"mois":10,"libelle_mois":"Octobre","region_admin":"Fès-Meknès","montant_ttc":4820443.57},{"annee":2023,"mois":10,"libelle_mois":"Octobre","region_admin":"Marrakech-Safi","montant_ttc":5954761.4},{"annee":2023,"mois":10,"libelle_mois":"Octobre","region_admin":"Oriental","montant_ttc":6403292.2700000005},{"annee":2023,"mois":10,"libelle_mois":"Octobre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4975984.18},{"annee":2023,"mois":10,"libelle_mois":"Octobre","region_admin":"Souss-Massa","montant_ttc":2806671.8},{"annee":2023,"mois":10,"libelle_mois":"Octobre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":3700900.53},{"annee":2023,"mois":11,"libelle_mois":"Novembre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2930307.7399999998},{"annee":2023,"mois":11,"libelle_mois":"Novembre","region_admin":"Casablanca-Settat","montant_ttc":6652632.43},{"annee":2023,"mois":11,"libelle_mois":"Novembre","region_admin":"Drâa-Tafilalet","montant_ttc":2556917.67},{"annee":2023,"mois":11,"libelle_mois":"Novembre","region_admin":"Fès-Meknès","montant_ttc":4274665.97},{"annee":2023,"mois":11,"libelle_mois":"Novembre","region_admin":"Marrakech-Safi","montant_ttc":5896017.87},{"annee":2023,"mois":11,"libelle_mois":"Novembre","region_admin":"Oriental","montant_ttc":4625825.86},{"annee":2023,"mois":11,"libelle_mois":"Novembre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5788003.49},{"annee":2023,"mois":11,"libelle_mois":"Novembre","region_admin":"Souss-Massa","montant_ttc":2173427.67},{"annee":2023,"mois":11,"libelle_mois":"Novembre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":4990771.2700000005},{"annee":2023,"mois":12,"libelle_mois":"Décembre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2534639.74},{"annee":2023,"mois":12,"libelle_mois":"Décembre","region_admin":"Casablanca-Settat","montant_ttc":5379776.75},{"annee":2023,"mois":12,"libelle_mois":"Décembre","region_admin":"Drâa-Tafilalet","montant_ttc":2827668.18},{"annee":2023,"mois":12,"libelle_mois":"Décembre","region_admin":"Fès-Meknès","montant_ttc":6059958.35},{"annee":2023,"mois":12,"libelle_mois":"Décembre","region_admin":"Marrakech-Safi","montant_ttc":5480556.11},{"annee":2023,"mois":12,"libelle_mois":"Décembre","region_admin":"Oriental","montant_ttc":5194388.89},{"annee":2023,"mois":12,"libelle_mois":"Décembre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4391392.93},{"annee":2023,"mois":12,"libelle_mois":"Décembre","region_admin":"Souss-Massa","montant_ttc":2517041.25},{"annee":2023,"mois":12,"libelle_mois":"Décembre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":6210398.12},{"annee":2024,"mois":1,"libelle_mois":"Janvier","region_admin":"Béni Mellal-Khénifra","montant_ttc":3910513.84},{"annee":2024,"mois":1,"libelle_mois":"Janvier","region_admin":"Casablanca-Settat","montant_ttc":5081433.79},{"annee":2024,"mois":1,"libelle_mois":"Janvier","region_admin":"Drâa-Tafilalet","montant_ttc":2183700.33},{"annee":2024,"mois":1,"libelle_mois":"Janvier","region_admin":"Fès-Meknès","montant_ttc":5349468.66},{"annee":2024,"mois":1,"libelle_mois":"Janvier","region_admin":"Marrakech-Safi","montant_ttc":5974644.36},{"annee":2024,"mois":1,"libelle_mois":"Janvier","region_admin":"Oriental","montant_ttc":5421157.0},{"annee":2024,"mois":1,"libelle_mois":"Janvier","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4798283.78},{"annee":2024,"mois":1,"libelle_mois":"Janvier","region_admin":"Souss-Massa","montant_ttc":2721042.95},{"annee":2024,"mois":1,"libelle_mois":"Janvier","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5446111.13},{"annee":2024,"mois":2,"libelle_mois":"Février","region_admin":"Béni Mellal-Khénifra","montant_ttc":2499658.13},{"annee":2024,"mois":2,"libelle_mois":"Février","region_admin":"Casablanca-Settat","montant_ttc":4967250.85},{"annee":2024,"mois":2,"libelle_mois":"Février","region_admin":"Drâa-Tafilalet","montant_ttc":2222943.63},{"annee":2024,"mois":2,"libelle_mois":"Février","region_admin":"Fès-Meknès","montant_ttc":5439385.58},{"annee":2024,"mois":2,"libelle_mois":"Février","region_admin":"Marrakech-Safi","montant_ttc":5660395.58},{"annee":2024,"mois":2,"libelle_mois":"Février","region_admin":"Oriental","montant_ttc":5544241.39},{"annee":2024,"mois":2,"libelle_mois":"Février","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4686147.21},{"annee":2024,"mois":2,"libelle_mois":"Février","region_admin":"Souss-Massa","montant_ttc":2118378.16},{"annee":2024,"mois":2,"libelle_mois":"Février","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5071492.9799999995},{"annee":2024,"mois":3,"libelle_mois":"Mars","region_admin":"Béni Mellal-Khénifra","montant_ttc":3205082.74},{"annee":2024,"mois":3,"libelle_mois":"Mars","region_admin":"Casablanca-Settat","montant_ttc":5129100.75},{"annee":2024,"mois":3,"libelle_mois":"Mars","region_admin":"Drâa-Tafilalet","montant_ttc":3018434.59},{"annee":2024,"mois":3,"libelle_mois":"Mars","region_admin":"Fès-Meknès","montant_ttc":4655755.46},{"annee":2024,"mois":3,"libelle_mois":"Mars","region_admin":"Marrakech-Safi","montant_ttc":4975876.66},{"annee":2024,"mois":3,"libelle_mois":"Mars","region_admin":"Oriental","montant_ttc":6526254.09},{"annee":2024,"mois":3,"libelle_mois":"Mars","region_admin":"Rabat-Salé-Kénitra","montant_ttc":6015664.9},{"annee":2024,"mois":3,"libelle_mois":"Mars","region_admin":"Souss-Massa","montant_ttc":3219739.19},{"annee":2024,"mois":3,"libelle_mois":"Mars","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":4451849.45},{"annee":2024,"mois":4,"libelle_mois":"Avril","region_admin":"Béni Mellal-Khénifra","montant_ttc":2357704.13},{"annee":2024,"mois":4,"libelle_mois":"Avril","region_admin":"Casablanca-Settat","montant_ttc":4475699.91},{"annee":2024,"mois":4,"libelle_mois":"Avril","region_admin":"Drâa-Tafilalet","montant_ttc":2069773.83},{"annee":2024,"mois":4,"libelle_mois":"Avril","region_admin":"Fès-Meknès","montant_ttc":5755820.42},{"annee":2024,"mois":4,"libelle_mois":"Avril","region_admin":"Marrakech-Safi","montant_ttc":6654959.51},{"annee":2024,"mois":4,"libelle_mois":"Avril","region_admin":"Oriental","montant_ttc":5572757.28},{"annee":2024,"mois":4,"libelle_mois":"Avril","region_admin":"Rabat-Salé-Kénitra","montant_ttc":6247440.69},{"annee":2024,"mois":4,"libelle_mois":"Avril","region_admin":"Souss-Massa","montant_ttc":2117940.88},{"annee":2024,"mois":4,"libelle_mois":"Avril","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":4999663.26},{"annee":2024,"mois":5,"libelle_mois":"Mai","region_admin":"Béni Mellal-Khénifra","montant_ttc":1900896.5599999998},{"annee":2024,"mois":5,"libelle_mois":"Mai","region_admin":"Casablanca-Settat","montant_ttc":5715082.61},{"annee":2024,"mois":5,"libelle_mois":"Mai","region_admin":"Drâa-Tafilalet","montant_ttc":2275303.69},{"annee":2024,"mois":5,"libelle_mois":"Mai","region_admin":"Fès-Meknès","montant_ttc":7055058.11},{"annee":2024,"mois":5,"libelle_mois":"Mai","region_admin":"Marrakech-Safi","montant_ttc":6453147.14},{"annee":2024,"mois":5,"libelle_mois":"Mai","region_admin":"Oriental","montant_ttc":5323104.63},{"annee":2024,"mois":5,"libelle_mois":"Mai","region_admin":"Rabat-Salé-Kénitra","montant_ttc":6351843.45},{"annee":2024,"mois":5,"libelle_mois":"Mai","region_admin":"Souss-Massa","montant_ttc":2644489.62},{"annee":2024,"mois":5,"libelle_mois":"Mai","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5710843.84},{"annee":2024,"mois":6,"libelle_mois":"Juin","region_admin":"Béni Mellal-Khénifra","montant_ttc":2217398.19},{"annee":2024,"mois":6,"libelle_mois":"Juin","region_admin":"Casablanca-Settat","montant_ttc":4839009.11},{"annee":2024,"mois":6,"libelle_mois":"Juin","region_admin":"Drâa-Tafilalet","montant_ttc":2706343.79},{"annee":2024,"mois":6,"libelle_mois":"Juin","region_admin":"Fès-Meknès","montant_ttc":4612034.22},{"annee":2024,"mois":6,"libelle_mois":"Juin","region_admin":"Marrakech-Safi","montant_ttc":5136421.42},{"annee":2024,"mois":6,"libelle_mois":"Juin","region_admin":"Oriental","montant_ttc":6056771.2700000005},{"annee":2024,"mois":6,"libelle_mois":"Juin","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4976243.53},{"annee":2024,"mois":6,"libelle_mois":"Juin","region_admin":"Souss-Massa","montant_ttc":2699548.28},{"annee":2024,"mois":6,"libelle_mois":"Juin","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5764600.9},{"annee":2024,"mois":7,"libelle_mois":"Juillet","region_admin":"Béni Mellal-Khénifra","montant_ttc":2961598.6},{"annee":2024,"mois":7,"libelle_mois":"Juillet","region_admin":"Casablanca-Settat","montant_ttc":6119016.2},{"annee":2024,"mois":7,"libelle_mois":"Juillet","region_admin":"Drâa-Tafilalet","montant_ttc":2711441.52},{"annee":2024,"mois":7,"libelle_mois":"Juillet","region_admin":"Fès-Meknès","montant_ttc":5665086.53},{"annee":2024,"mois":7,"libelle_mois":"Juillet","region_admin":"Marrakech-Safi","montant_ttc":6088990.95},{"annee":2024,"mois":7,"libelle_mois":"Juillet","region_admin":"Oriental","montant_ttc":6266367.78},{"annee":2024,"mois":7,"libelle_mois":"Juillet","region_admin":"Rabat-Salé-Kénitra","montant_ttc":4700192.51},{"annee":2024,"mois":7,"libelle_mois":"Juillet","region_admin":"Souss-Massa","montant_ttc":2615202.84},{"annee":2024,"mois":7,"libelle_mois":"Juillet","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5184504.04},{"annee":2024,"mois":8,"libelle_mois":"Août","region_admin":"Béni Mellal-Khénifra","montant_ttc":2504689.33},{"annee":2024,"mois":8,"libelle_mois":"Août","region_admin":"Casablanca-Settat","montant_ttc":6038203.13},{"annee":2024,"mois":8,"libelle_mois":"Août","region_admin":"Drâa-Tafilalet","montant_ttc":3045564.21},{"annee":2024,"mois":8,"libelle_mois":"Août","region_admin":"Fès-Meknès","montant_ttc":5347264.61},{"annee":2024,"mois":8,"libelle_mois":"Août","region_admin":"Marrakech-Safi","montant_ttc":4996275.06},{"annee":2024,"mois":8,"libelle_mois":"Août","region_admin":"Oriental","montant_ttc":5548901.56},{"annee":2024,"mois":8,"libelle_mois":"Août","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5924156.41},{"annee":2024,"mois":8,"libelle_mois":"Août","region_admin":"Souss-Massa","montant_ttc":2691870.03},{"annee":2024,"mois":8,"libelle_mois":"Août","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":6043426.45},{"annee":2024,"mois":9,"libelle_mois":"Septembre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2383732.81},{"annee":2024,"mois":9,"libelle_mois":"Septembre","region_admin":"Casablanca-Settat","montant_ttc":4597107.8100000005},{"annee":2024,"mois":9,"libelle_mois":"Septembre","region_admin":"Drâa-Tafilalet","montant_ttc":2588411.21},{"annee":2024,"mois":9,"libelle_mois":"Septembre","region_admin":"Fès-Meknès","montant_ttc":5544376.8},{"annee":2024,"mois":9,"libelle_mois":"Septembre","region_admin":"Marrakech-Safi","montant_ttc":5271327.47},{"annee":2024,"mois":9,"libelle_mois":"Septembre","region_admin":"Oriental","montant_ttc":5713626.98},{"annee":2024,"mois":9,"libelle_mois":"Septembre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":6205182.08},{"annee":2024,"mois":9,"libelle_mois":"Septembre","region_admin":"Souss-Massa","montant_ttc":2181245.9},{"annee":2024,"mois":9,"libelle_mois":"Septembre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5202180.65},{"annee":2024,"mois":10,"libelle_mois":"Octobre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2781441.35},{"annee":2024,"mois":10,"libelle_mois":"Octobre","region_admin":"Casablanca-Settat","montant_ttc":4808165.97},{"annee":2024,"mois":10,"libelle_mois":"Octobre","region_admin":"Drâa-Tafilalet","montant_ttc":2757709.07},{"annee":2024,"mois":10,"libelle_mois":"Octobre","region_admin":"Fès-Meknès","montant_ttc":6139462.16},{"annee":2024,"mois":10,"libelle_mois":"Octobre","region_admin":"Marrakech-Safi","montant_ttc":4704261.0600000005},{"annee":2024,"mois":10,"libelle_mois":"Octobre","region_admin":"Oriental","montant_ttc":5575069.62},{"annee":2024,"mois":10,"libelle_mois":"Octobre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5554945.41},{"annee":2024,"mois":10,"libelle_mois":"Octobre","region_admin":"Souss-Massa","montant_ttc":3220946.2},{"annee":2024,"mois":10,"libelle_mois":"Octobre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5302003.2},{"annee":2024,"mois":11,"libelle_mois":"Novembre","region_admin":"Béni Mellal-Khénifra","montant_ttc":2589086.29},{"annee":2024,"mois":11,"libelle_mois":"Novembre","region_admin":"Casablanca-Settat","montant_ttc":6220409.56},{"annee":2024,"mois":11,"libelle_mois":"Novembre","region_admin":"Drâa-Tafilalet","montant_ttc":2865308.87},{"annee":2024,"mois":11,"libelle_mois":"Novembre","region_admin":"Fès-Meknès","montant_ttc":5566361.24},{"annee":2024,"mois":11,"libelle_mois":"Novembre","region_admin":"Marrakech-Safi","montant_ttc":5705456.52},{"annee":2024,"mois":11,"libelle_mois":"Novembre","region_admin":"Oriental","montant_ttc":5212411.91},{"annee":2024,"mois":11,"libelle_mois":"Novembre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":5619908.95},{"annee":2024,"mois":11,"libelle_mois":"Novembre","region_admin":"Souss-Massa","montant_ttc":2489951.63},{"annee":2024,"mois":11,"libelle_mois":"Novembre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5125526.09},{"annee":2024,"mois":12,"libelle_mois":"Décembre","region_admin":"Béni Mellal-Khénifra","montant_ttc":3314320.35},{"annee":2024,"mois":12,"libelle_mois":"Décembre","region_admin":"Casablanca-Settat","montant_ttc":4823653.17},{"annee":2024,"mois":12,"libelle_mois":"Décembre","region_admin":"Drâa-Tafilalet","montant_ttc":2121786.43},{"annee":2024,"mois":12,"libelle_mois":"Décembre","region_admin":"Fès-Meknès","montant_ttc":5273463.44},{"annee":2024,"mois":12,"libelle_mois":"Décembre","region_admin":"Marrakech-Safi","montant_ttc":4625407.77},{"annee":2024,"mois":12,"libelle_mois":"Décembre","region_admin":"Oriental","montant_ttc":4806596.96},{"annee":2024,"mois":12,"libelle_mois":"Décembre","region_admin":"Rabat-Salé-Kénitra","montant_ttc":7250204.13},{"annee":2024,"mois":12,"libelle_mois":"Décembre","region_admin":"Souss-Massa","montant_ttc":2829626.84},{"annee":2024,"mois":12,"libelle_mois":"Décembre","region_admin":"Tanger-Tétouan-Al Hoceïma","montant_ttc":5989316.0}],"q2":[{"annee":2024,"trimestre":4,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":973234.54,"qte":103},{"annee":2024,"trimestre":4,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":655509.74,"qte":68},{"annee":2024,"trimestre":4,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":627439.0900000001,"qte":64},{"annee":2024,"trimestre":4,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":601593.0,"qte":49},{"annee":2024,"trimestre":4,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":597586.46,"qte":47},{"annee":2024,"trimestre":4,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":545625.08,"qte":47},{"annee":2024,"trimestre":4,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":516058.62,"qte":63},{"annee":2024,"trimestre":4,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":452970.73,"qte":56},{"annee":2024,"trimestre":4,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":443149.44,"qte":60},{"annee":2024,"trimestre":4,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":418878.2,"qte":66},{"annee":2024,"trimestre":4,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":417147.22000000003,"qte":54},{"annee":2024,"trimestre":4,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":366401.27999999997,"qte":43},{"annee":2024,"trimestre":4,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":354119.16000000003,"qte":68},{"annee":2024,"trimestre":4,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":300198.74,"qte":41},{"annee":2024,"trimestre":4,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":291115.81,"qte":42},{"annee":2024,"trimestre":4,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":282177.55,"qte":31},{"annee":2024,"trimestre":4,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":233733.88999999998,"qte":21},{"annee":2024,"trimestre":4,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":190897.49,"qte":17},{"annee":2024,"trimestre":4,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":187066.23,"qte":33},{"annee":2024,"trimestre":4,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":141316.97,"qte":34},{"annee":2024,"trimestre":3,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":992558.64,"qte":96},{"annee":2024,"trimestre":3,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":788002.45,"qte":89},{"annee":2024,"trimestre":3,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":659208.52,"qte":59},{"annee":2024,"trimestre":3,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":635084.02,"qte":72},{"annee":2024,"trimestre":3,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":634785.51,"qte":85},{"annee":2024,"trimestre":3,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":589402.02,"qte":69},{"annee":2024,"trimestre":3,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":582696.42,"qte":53},{"annee":2024,"trimestre":3,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":561608.4299999999,"qte":66},{"annee":2024,"trimestre":3,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":522512.26999999996,"qte":69},{"annee":2024,"trimestre":3,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":432975.16000000003,"qte":29},{"annee":2024,"trimestre":3,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":383017.25,"qte":42},{"annee":2024,"trimestre":3,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":356389.54,"qte":55},{"annee":2024,"trimestre":3,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":350863.52,"qte":40},{"annee":2024,"trimestre":3,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":330788.94,"qte":44},{"annee":2024,"trimestre":3,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":308351.57,"qte":42},{"annee":2024,"trimestre":3,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":306240.58999999997,"qte":27},{"annee":2024,"trimestre":3,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":291225.75,"qte":40},{"annee":2024,"trimestre":3,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":280585.9,"qte":27},{"annee":2024,"trimestre":3,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":167401.9,"qte":23},{"annee":2024,"trimestre":3,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":93577.69,"qte":12},{"annee":2024,"trimestre":2,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":1039011.91,"qte":125},{"annee":2024,"trimestre":2,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":634030.0,"qte":69},{"annee":2024,"trimestre":2,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":586049.98,"qte":72},{"annee":2024,"trimestre":2,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":557891.89,"qte":70},{"annee":2024,"trimestre":2,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":472794.11,"qte":49},{"annee":2024,"trimestre":2,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":461373.42,"qte":50},{"annee":2024,"trimestre":2,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":455298.57,"qte":52},{"annee":2024,"trimestre":2,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":391718.94,"qte":45},{"annee":2024,"trimestre":2,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":387889.66,"qte":48},{"annee":2024,"trimestre":2,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":354002.43,"qte":35},{"annee":2024,"trimestre":2,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":324951.0,"qte":44},{"annee":2024,"trimestre":2,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":309695.32999999996,"qte":39},{"annee":2024,"trimestre":2,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":298385.7,"qte":29},{"annee":2024,"trimestre":2,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":284806.14,"qte":53},{"annee":2024,"trimestre":2,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":271600.39,"qte":29},{"annee":2024,"trimestre":2,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":245507.99999999997,"qte":21},{"annee":2024,"trimestre":2,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":241396.75,"qte":22},{"annee":2024,"trimestre":2,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":194272.0,"qte":34},{"annee":2024,"trimestre":2,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":161317.41999999998,"qte":28},{"annee":2024,"trimestre":2,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":150942.81,"qte":21},{"annee":2024,"trimestre":1,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":780072.77,"qte":74},{"annee":2024,"trimestre":1,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":689203.05,"qte":74},{"annee":2024,"trimestre":1,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":559422.34,"qte":59},{"annee":2024,"trimestre":1,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":528623.9,"qte":60},{"annee":2024,"trimestre":1,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":491671.58,"qte":59},{"annee":2024,"trimestre":1,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":477071.73,"qte":42},{"annee":2024,"trimestre":1,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":449458.0,"qte":53},{"annee":2024,"trimestre":1,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":438672.14999999997,"qte":38},{"annee":2024,"trimestre":1,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":435020.52,"qte":43},{"annee":2024,"trimestre":1,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":383974.73,"qte":40},{"annee":2024,"trimestre":1,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":381312.39,"qte":26},{"annee":2024,"trimestre":1,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":333657.55,"qte":37},{"annee":2024,"trimestre":1,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":302437.35,"qte":30},{"annee":2024,"trimestre":1,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":279840.3,"qte":33},{"annee":2024,"trimestre":1,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":260266.56,"qte":33},{"annee":2024,"trimestre":1,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":246398.91999999998,"qte":21},{"annee":2024,"trimestre":1,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":181956.75,"qte":22},{"annee":2024,"trimestre":1,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":165297.38,"qte":40},{"annee":2024,"trimestre":1,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":154768.63,"qte":24},{"annee":2024,"trimestre":1,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":123362.39,"qte":25},{"annee":2023,"trimestre":4,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":652567.45,"qte":67},{"annee":2023,"trimestre":4,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":534433.64,"qte":57},{"annee":2023,"trimestre":4,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":514092.44,"qte":60},{"annee":2023,"trimestre":4,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":491653.77,"qte":71},{"annee":2023,"trimestre":4,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":491266.26,"qte":61},{"annee":2023,"trimestre":4,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":451553.0,"qte":52},{"annee":2023,"trimestre":4,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":422170.18,"qte":40},{"annee":2023,"trimestre":4,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":410102.27,"qte":42},{"annee":2023,"trimestre":4,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":409801.2,"qte":35},{"annee":2023,"trimestre":4,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":375149.67000000004,"qte":33},{"annee":2023,"trimestre":4,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":362718.66000000003,"qte":50},{"annee":2023,"trimestre":4,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":288516.72,"qte":39},{"annee":2023,"trimestre":4,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":270192.1,"qte":27},{"annee":2023,"trimestre":4,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":265738.67000000004,"qte":56},{"annee":2023,"trimestre":4,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":261410.29,"qte":31},{"annee":2023,"trimestre":4,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":252668.28,"qte":20},{"annee":2023,"trimestre":4,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":244919.34,"qte":43},{"annee":2023,"trimestre":4,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":244669.56,"qte":23},{"annee":2023,"trimestre":4,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":105262.42,"qte":13},{"annee":2023,"trimestre":4,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":83952.59000000001,"qte":9},{"annee":2023,"trimestre":3,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":734442.27,"qte":66},{"annee":2023,"trimestre":3,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":695245.32,"qte":57},{"annee":2023,"trimestre":3,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":560204.21,"qte":44},{"annee":2023,"trimestre":3,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":542623.22,"qte":72},{"annee":2023,"trimestre":3,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":497358.54000000004,"qte":53},{"annee":2023,"trimestre":3,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":484573.4,"qte":42},{"annee":2023,"trimestre":3,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":413202.13,"qte":44},{"annee":2023,"trimestre":3,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":390197.73,"qte":38},{"annee":2023,"trimestre":3,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":382132.12,"qte":72},{"annee":2023,"trimestre":3,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":368295.71,"qte":40},{"annee":2023,"trimestre":3,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":366384.47,"qte":36},{"annee":2023,"trimestre":3,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":347167.3,"qte":43},{"annee":2023,"trimestre":3,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":310998.14,"qte":30},{"annee":2023,"trimestre":3,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":244735.05000000002,"qte":34},{"annee":2023,"trimestre":3,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":243271.34,"qte":21},{"annee":2023,"trimestre":3,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":242168.44,"qte":31},{"annee":2023,"trimestre":3,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":222822.33000000002,"qte":30},{"annee":2023,"trimestre":3,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":222790.79,"qte":45},{"annee":2023,"trimestre":3,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":205668.76,"qte":27},{"annee":2023,"trimestre":3,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":57610.76,"qte":10},{"annee":2023,"trimestre":2,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":613492.9,"qte":63},{"annee":2023,"trimestre":2,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":611897.8,"qte":75},{"annee":2023,"trimestre":2,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":581202.45,"qte":63},{"annee":2023,"trimestre":2,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":550310.16,"qte":40},{"annee":2023,"trimestre":2,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":518663.47000000003,"qte":54},{"annee":2023,"trimestre":2,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":513679.7,"qte":49},{"annee":2023,"trimestre":2,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":504699.2,"qte":56},{"annee":2023,"trimestre":2,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":501863.87,"qte":37},{"annee":2023,"trimestre":2,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":493886.87,"qte":59},{"annee":2023,"trimestre":2,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":474540.51,"qte":33},{"annee":2023,"trimestre":2,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":451662.64,"qte":57},{"annee":2023,"trimestre":2,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":427440.06,"qte":49},{"annee":2023,"trimestre":2,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":355578.32,"qte":32},{"annee":2023,"trimestre":2,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":248318.66999999998,"qte":37},{"annee":2023,"trimestre":2,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":227513.22999999998,"qte":27},{"annee":2023,"trimestre":2,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":219537.88,"qte":31},{"annee":2023,"trimestre":2,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":207229.7,"qte":28},{"annee":2023,"trimestre":2,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":162211.72,"qte":31},{"annee":2023,"trimestre":2,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":157656.18,"qte":29},{"annee":2023,"trimestre":2,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":59026.399999999994,"qte":9},{"annee":2023,"trimestre":1,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":806335.56,"qte":69},{"annee":2023,"trimestre":1,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":715907.53,"qte":65},{"annee":2023,"trimestre":1,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":699221.86,"qte":85},{"annee":2023,"trimestre":1,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":634603.42,"qte":64},{"annee":2023,"trimestre":1,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":567498.24,"qte":48},{"annee":2023,"trimestre":1,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":564025.65,"qte":52},{"annee":2023,"trimestre":1,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":514396.99,"qte":57},{"annee":2023,"trimestre":1,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":471996.23,"qte":40},{"annee":2023,"trimestre":1,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":447460.08999999997,"qte":42},{"annee":2023,"trimestre":1,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":433151.72,"qte":49},{"annee":2023,"trimestre":1,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":428700.92,"qte":64},{"annee":2023,"trimestre":1,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":394845.19,"qte":44},{"annee":2023,"trimestre":1,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":367090.26,"qte":35},{"annee":2023,"trimestre":1,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":308671.05000000005,"qte":28},{"annee":2023,"trimestre":1,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":288447.12,"qte":29},{"annee":2023,"trimestre":1,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":283507.62,"qte":36},{"annee":2023,"trimestre":1,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":278362.67,"qte":48},{"annee":2023,"trimestre":1,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":211849.53,"qte":29},{"annee":2023,"trimestre":1,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":192576.1,"qte":42},{"annee":2023,"trimestre":1,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":168224.16,"qte":36},{"annee":2022,"trimestre":4,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":967863.5700000001,"qte":102},{"annee":2022,"trimestre":4,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":546207.82,"qte":67},{"annee":2022,"trimestre":4,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":529253.09,"qte":41},{"annee":2022,"trimestre":4,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":515467.62,"qte":67},{"annee":2022,"trimestre":4,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":457032.67,"qte":35},{"annee":2022,"trimestre":4,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":415434.09,"qte":56},{"annee":2022,"trimestre":4,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":407448.75,"qte":37},{"annee":2022,"trimestre":4,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":395051.57999999996,"qte":39},{"annee":2022,"trimestre":4,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":388296.33999999997,"qte":40},{"annee":2022,"trimestre":4,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":361623.33,"qte":32},{"annee":2022,"trimestre":4,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":349396.13,"qte":37},{"annee":2022,"trimestre":4,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":284138.83,"qte":34},{"annee":2022,"trimestre":4,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":269994.77,"qte":43},{"annee":2022,"trimestre":4,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":236864.31,"qte":35},{"annee":2022,"trimestre":4,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":202356.97,"qte":37},{"annee":2022,"trimestre":4,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":167129.21000000002,"qte":32},{"annee":2022,"trimestre":4,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":165012.18,"qte":17},{"annee":2022,"trimestre":4,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":156554.6,"qte":17},{"annee":2022,"trimestre":4,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":154218.77,"qte":22},{"annee":2022,"trimestre":4,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":121552.48999999999,"qte":31},{"annee":2022,"trimestre":3,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":799138.76,"qte":68},{"annee":2022,"trimestre":3,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":729531.53,"qte":62},{"annee":2022,"trimestre":3,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":717904.7000000001,"qte":69},{"annee":2022,"trimestre":3,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":683804.03,"qte":66},{"annee":2022,"trimestre":3,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":596405.29,"qte":61},{"annee":2022,"trimestre":3,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":574637.02,"qte":46},{"annee":2022,"trimestre":3,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":546311.0,"qte":56},{"annee":2022,"trimestre":3,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":498758.89,"qte":42},{"annee":2022,"trimestre":3,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":463669.62,"qte":56},{"annee":2022,"trimestre":3,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":462859.96,"qte":58},{"annee":2022,"trimestre":3,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":461363.38,"qte":47},{"annee":2022,"trimestre":3,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":451733.82,"qte":40},{"annee":2022,"trimestre":3,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":446214.02999999997,"qte":48},{"annee":2022,"trimestre":3,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":408229.87,"qte":59},{"annee":2022,"trimestre":3,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":380611.26,"qte":44},{"annee":2022,"trimestre":3,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":360072.52,"qte":42},{"annee":2022,"trimestre":3,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":322605.46,"qte":26},{"annee":2022,"trimestre":3,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":281081.63,"qte":24},{"annee":2022,"trimestre":3,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":117453.61,"qte":14},{"annee":2022,"trimestre":3,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":30730.52,"qte":15},{"annee":2022,"trimestre":2,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":769476.44,"qte":56},{"annee":2022,"trimestre":2,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":533501.51,"qte":51},{"annee":2022,"trimestre":2,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":479706.28,"qte":63},{"annee":2022,"trimestre":2,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":453744.64,"qte":46},{"annee":2022,"trimestre":2,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":440084.59,"qte":48},{"annee":2022,"trimestre":2,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":434356.19,"qte":45},{"annee":2022,"trimestre":2,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":425642.16,"qte":37},{"annee":2022,"trimestre":2,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":383174.53,"qte":46},{"annee":2022,"trimestre":2,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":370734.15,"qte":40},{"annee":2022,"trimestre":2,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":363927.37,"qte":37},{"annee":2022,"trimestre":2,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":315608.07,"qte":33},{"annee":2022,"trimestre":2,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":301256.14,"qte":34},{"annee":2022,"trimestre":2,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":262087.96,"qte":21},{"annee":2022,"trimestre":2,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":248326.87,"qte":28},{"annee":2022,"trimestre":2,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":216502.01,"qte":28},{"annee":2022,"trimestre":2,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":190153.71,"qte":23},{"annee":2022,"trimestre":2,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":180885.08,"qte":23},{"annee":2022,"trimestre":2,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":179283.47,"qte":23},{"annee":2022,"trimestre":2,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":152597.05,"qte":24},{"annee":2022,"trimestre":2,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":135772.58,"qte":25},{"annee":2022,"trimestre":1,"nom_produit":"Robot Aspirateur Xiaomi","categorie":"Electronique","marque":"Xiaomi","ca":833080.03,"qte":74},{"annee":2022,"trimestre":1,"nom_produit":"Xbox Series X","categorie":"Electronique","marque":"Microsoft","ca":562049.33,"qte":54},{"annee":2022,"trimestre":1,"nom_produit":"Adidas Ultraboost 23","categorie":"Mode","marque":"Adidas","ca":559033.35,"qte":59},{"annee":2022,"trimestre":1,"nom_produit":"PS5 Console","categorie":"Electronique","marque":"Sony","ca":528314.34,"qte":69},{"annee":2022,"trimestre":1,"nom_produit":"Thé Menthe 200g","categorie":"Alimentation","marque":"Atay","ca":521512.48,"qte":66},{"annee":2022,"trimestre":1,"nom_produit":"iPhone 16 Pro 256Go","categorie":"Electronique","marque":"Apple","ca":516272.86,"qte":36},{"annee":2022,"trimestre":1,"nom_produit":"Sony WH-1000XM5","categorie":"Electronique","marque":"Sony","ca":448585.08999999997,"qte":51},{"annee":2022,"trimestre":1,"nom_produit":"Nike Air Max 270","categorie":"Mode","marque":"Nike","ca":428643.99,"qte":39},{"annee":2022,"trimestre":1,"nom_produit":"Argan Bio 100ml","categorie":"Alimentation","marque":"Tifawin","ca":405930.03,"qte":41},{"annee":2022,"trimestre":1,"nom_produit":"Zara Veste Homme","categorie":"Mode","marque":"Zara","ca":398781.79,"qte":39},{"annee":2022,"trimestre":1,"nom_produit":"LG OLED 55\"","categorie":"Electronique","marque":"LG","ca":395052.39,"qte":47},{"annee":2022,"trimestre":1,"nom_produit":"AirPods Pro","categorie":"Electronique","marque":"Apple","ca":391717.89,"qte":28},{"annee":2022,"trimestre":1,"nom_produit":"iPad Air M2","categorie":"Electronique","marque":"Apple","ca":343860.85,"qte":56},{"annee":2022,"trimestre":1,"nom_produit":"Couscous Royal 5kg","categorie":"Alimentation","marque":"Royal","ca":337241.82,"qte":37},{"annee":2022,"trimestre":1,"nom_produit":"Huile Olive Volubilis 1L","categorie":"Alimentation","marque":"Volubilis","ca":331591.44,"qte":28},{"annee":2022,"trimestre":1,"nom_produit":"Dell XPS 15","categorie":"Electronique","marque":"Dell","ca":313502.54,"qte":31},{"annee":2022,"trimestre":1,"nom_produit":"MacBook Pro M3","categorie":"Electronique","marque":"Apple","ca":283571.2,"qte":27},{"annee":2022,"trimestre":1,"nom_produit":"Cafetière Nespresso","categorie":"Electronique","marque":"Nespresso","ca":270131.20999999996,"qte":22},{"annee":2022,"trimestre":1,"nom_produit":"Samsung Galaxy S24","categorie":"Electronique","marque":"Samsung","ca":233636.18,"qte":36},{"annee":2022,"trimestre":1,"nom_produit":"H&M Robe Femme","categorie":"Mode","marque":"H&M","ca":175147.4,"qte":49}],"q3":[{"segment_client":"Bronze","ca":42121871.57,"nb":875,"panier":48139.281794285715},{"segment_client":"Gold","ca":1397709879.22,"nb":28041,"panier":49845.222325166724},{"segment_client":"Silver","ca":22336648.1,"nb":562,"panier":39744.92544483986}],"q4":[{"categorie":"Alimentation","nb_livrees":5874,"nb_retournees":1012,"taux_retour":14.7},{"categorie":"Electronique","nb_livrees":17673,"nb_retournees":2914,"taux_retour":14.2},{"categorie":"Mode","nb_livrees":5931,"nb_retournees":961,"taux_retour":13.9}],"q5":[{"annee":2022,"mois":1,"libelle_mois":"Janvier","periode_ramadan":false,"montant_ttc":8929345.47},{"annee":2022,"mois":2,"libelle_mois":"Février","periode_ramadan":false,"montant_ttc":6827009.64},{"annee":2022,"mois":3,"libelle_mois":"Mars","periode_ramadan":false,"montant_ttc":8716610.86},{"annee":2022,"mois":4,"libelle_mois":"Avril","periode_ramadan":false,"montant_ttc":39518.38},{"annee":2022,"mois":4,"libelle_mois":"Avril","periode_ramadan":true,"montant_ttc":7162398.89},{"annee":2022,"mois":5,"libelle_mois":"Mai","periode_ramadan":false,"montant_ttc":8410720.8},{"annee":2022,"mois":5,"libelle_mois":"Mai","periode_ramadan":true,"montant_ttc":234354.74},{"annee":2022,"mois":6,"libelle_mois":"Juin","periode_ramadan":false,"montant_ttc":9272991.4},{"annee":2022,"mois":7,"libelle_mois":"Juillet","periode_ramadan":false,"montant_ttc":6713179.93},{"annee":2022,"mois":8,"libelle_mois":"Août","periode_ramadan":false,"montant_ttc":7641476.03},{"annee":2022,"mois":9,"libelle_mois":"Septembre","periode_ramadan":false,"montant_ttc":7317726.61},{"annee":2022,"mois":10,"libelle_mois":"Octobre","periode_ramadan":false,"montant_ttc":7759590.83},{"annee":2022,"mois":11,"libelle_mois":"Novembre","periode_ramadan":false,"montant_ttc":8809234.3},{"annee":2022,"mois":12,"libelle_mois":"Décembre","periode_ramadan":false,"montant_ttc":7818029.57},{"annee":2023,"mois":1,"libelle_mois":"Janvier","periode_ramadan":false,"montant_ttc":8728970.46},{"annee":2023,"mois":2,"libelle_mois":"Février","periode_ramadan":false,"montant_ttc":7358963.08},{"annee":2023,"mois":3,"libelle_mois":"Mars","periode_ramadan":false,"montant_ttc":6144260.03},{"annee":2023,"mois":3,"libelle_mois":"Mars","periode_ramadan":true,"montant_ttc":2707467.94},{"annee":2023,"mois":4,"libelle_mois":"Avril","periode_ramadan":false,"montant_ttc":2830080.91},{"annee":2023,"mois":4,"libelle_mois":"Avril","periode_ramadan":true,"montant_ttc":5965334.58},{"annee":2023,"mois":5,"libelle_mois":"Mai","periode_ramadan":false,"montant_ttc":8834797.02},{"annee":2023,"mois":6,"libelle_mois":"Juin","periode_ramadan":false,"montant_ttc":8915491.17},{"annee":2023,"mois":7,"libelle_mois":"Juillet","periode_ramadan":false,"montant_ttc":9282674.54},{"annee":2023,"mois":8,"libelle_mois":"Août","periode_ramadan":false,"montant_ttc":8377456.37},{"annee":2023,"mois":9,"libelle_mois":"Septembre","periode_ramadan":false,"montant_ttc":8521831.88},{"annee":2023,"mois":10,"libelle_mois":"Octobre","periode_ramadan":false,"montant_ttc":6950804.36},{"annee":2023,"mois":11,"libelle_mois":"Novembre","periode_ramadan":false,"montant_ttc":8704958.03},{"annee":2023,"mois":12,"libelle_mois":"Décembre","periode_ramadan":false,"montant_ttc":8786214.66},{"annee":2024,"mois":1,"libelle_mois":"Janvier","periode_ramadan":false,"montant_ttc":8802091.98},{"annee":2024,"mois":2,"libelle_mois":"Février","periode_ramadan":false,"montant_ttc":7695512.34},{"annee":2024,"mois":3,"libelle_mois":"Mars","periode_ramadan":false,"montant_ttc":2650861.93},{"annee":2024,"mois":3,"libelle_mois":"Mars","periode_ramadan":true,"montant_ttc":5968567.69},{"annee":2024,"mois":4,"libelle_mois":"Avril","periode_ramadan":false,"montant_ttc":5938345.6899999995},{"annee":2024,"mois":4,"libelle_mois":"Avril","periode_ramadan":true,"montant_ttc":2659285.19},{"annee":2024,"mois":5,"libelle_mois":"Mai","periode_ramadan":false,"montant_ttc":9651967.47},{"annee":2024,"mois":6,"libelle_mois":"Juin","periode_ramadan":false,"montant_ttc":7198495.04},{"annee":2024,"mois":7,"libelle_mois":"Juillet","periode_ramadan":false,"montant_ttc":8165972.85},{"annee":2024,"mois":8,"libelle_mois":"Août","periode_ramadan":false,"montant_ttc":7065094.38},{"annee":2024,"mois":9,"libelle_mois":"Septembre","periode_ramadan":false,"montant_ttc":7010789.09},{"annee":2024,"mois":10,"libelle_mois":"Octobre","periode_ramadan":false,"montant_ttc":7178933.5},{"annee":2024,"mois":11,"libelle_mois":"Novembre","periode_ramadan":false,"montant_ttc":7868096.05},{"annee":2024,"mois":12,"libelle_mois":"Décembre","periode_ramadan":false,"montant_ttc":8154291.47}]};
+
+// ── Utils ──────────────────────────────────────────────────────────────────────
+const fmtN = n => new Intl.NumberFormat('fr-FR').format(Math.round(n));
+const fmtM = n => {
+  if(n>=1e9) return (n/1e9).toFixed(1)+' Md MAD';
+  if(n>=1e6) return (n/1e6).toFixed(1)+' M MAD';
+  if(n>=1e3) return Math.round(n/1e3)+'K MAD';
+  return Math.round(n)+' MAD';
+};
+const fmtMAD = n => fmtM(n);
+const MFR = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const PAL = ['#4f8ef7','#3ecf8e','#f5a623','#f7604d','#a78bfa','#38bdf8','#fb923c','#34d399','#f472b6'];
+const charts = {};
+
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+Chart.defaults.color = '#7a8aaa';
+Chart.defaults.borderColor = '#1f2d47';
+
+// ── KPIs ───────────────────────────────────────────────────────────────────────
+document.getElementById('k1').textContent = fmtMAD(DATA.kpis.ca_total);
+document.getElementById('k2').textContent = fmtN(DATA.kpis.nb_commandes);
+document.getElementById('k3').textContent = fmtN(DATA.kpis.nb_clients);
+document.getElementById('k4').textContent = DATA.kpis.taux_retour + '%';
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+function go(id, tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  tab.classList.add('active');
+  if(id==='p2') setTimeout(rP2,30);
+  if(id==='p3') setTimeout(rP3,30);
+  if(id==='p4') setTimeout(rP4,30);
+  if(id==='p5') setTimeout(rP5,30);
+}
+
+// ── Populate region dropdown ───────────────────────────────────────────────────
+const REGIONS = [...new Set(DATA.q1.map(r=>r.region_admin))].sort();
+const selR = document.getElementById('p1r');
+REGIONS.forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; selR.appendChild(o); });
+
+// ── PAGE 1 ─────────────────────────────────────────────────────────────────────
+function rP1(){
+  const y = document.getElementById('p1y').value;
+  const r = document.getElementById('p1r').value;
+  let data = DATA.q1;
+  if(y!=='all') data = data.filter(d=>String(d.annee)===y);
+  if(r!=='all') data = data.filter(d=>d.region_admin===r);
+
+  const regs  = r==='all' ? REGIONS : [r];
+  const months = [...new Set(data.map(d=>d.mois))].sort((a,b)=>a-b);
+  const labels = months.map(m=>MFR[m]);
+
+  const datasets = regs.map((reg,i)=>({
+    label: reg.length>22 ? reg.substring(0,22)+'…' : reg,
+    data: months.map(m=>{ const row=data.find(d=>d.region_admin===reg&&d.mois===m); return row?row.montant_ttc:0; }),
+    borderColor: PAL[i%PAL.length], backgroundColor: PAL[i%PAL.length]+'20',
+    tension:0.4, fill: r!=='all', pointRadius:3,
+  }));
+
+  destroyChart('c1l');
+  charts['c1l'] = new Chart(document.getElementById('c1l'),{
+    type:'line', data:{labels, datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#7a8aaa',font:{size:10}}}},
+      scales:{x:{ticks:{color:'#7a8aaa',font:{size:10}},grid:{color:'#1f2d47'}},
+              y:{ticks:{color:'#7a8aaa',callback:v=>fmtM(v),font:{size:10}},grid:{color:'#1f2d47'}}}}
+  });
+
+  let all = DATA.q1;
+  if(y!=='all') all = all.filter(d=>String(d.annee)===y);
+  const byReg = REGIONS.map(reg=>({reg, ca: all.filter(d=>d.region_admin===reg).reduce((s,d)=>s+d.montant_ttc,0)}))
+    .sort((a,b)=>b.ca-a.ca);
+
+  destroyChart('c1b');
+  charts['c1b'] = new Chart(document.getElementById('c1b'),{
+    type:'bar',
+    data:{labels:byReg.map(x=>x.reg.length>20?x.reg.substring(0,20)+'…':x.reg),
+          datasets:[{data:byReg.map(x=>x.ca), backgroundColor:byReg.map((_,i)=>PAL[i%PAL.length]), borderRadius:5}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#7a8aaa',callback:v=>fmtM(v),font:{size:10}},grid:{color:'#1f2d47'}},
+              y:{ticks:{color:'#7a8aaa',font:{size:10}},grid:{color:'#1f2d47'}}}}
+  });
+}
+
+// ── PAGE 2 ─────────────────────────────────────────────────────────────────────
+function rP2(){
+  const y = parseInt(document.getElementById('p2y').value);
+  const t = parseInt(document.getElementById('p2t').value);
+  const data = DATA.q2.filter(r=>r.annee===y&&r.trimestre===t)
+    .sort((a,b)=>b.ca-a.ca).slice(0,10);
+
+  const catColor = c => c==='Electronique'?'#4f8ef7':c==='Mode'?'#f5a623':'#3ecf8e';
+
+  destroyChart('c2b');
+  charts['c2b'] = new Chart(document.getElementById('c2b'),{
+    type:'bar',
+    data:{labels:data.map(r=>r.nom_produit),
+          datasets:[{data:data.map(r=>r.ca), backgroundColor:data.map(r=>catColor(r.categorie)), borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#7a8aaa',callback:v=>fmtM(v),font:{size:10}},grid:{color:'#1f2d47'}},
+              y:{ticks:{color:'#7a8aaa',font:{size:10}},grid:{color:'#1f2d47'}}}}
+  });
+
+  const tbody = document.getElementById('t2');
+  tbody.innerHTML = data.map((r,i)=>`<tr>
+    <td style="color:var(--blue);font-weight:700">#${i+1}</td>
+    <td>${r.nom_produit}</td>
+    <td><span class="badge bg-${r.categorie==='Electronique'?'elec':r.categorie==='Mode'?'mode':'ali'}">${r.categorie}</span></td>
+    <td class="mono">${fmtMAD(r.ca)}</td>
+    <td class="mono" style="color:var(--muted)">${fmtN(r.qte)}</td>
+  </tr>`).join('');
+}
+
+// ── PAGE 3 ─────────────────────────────────────────────────────────────────────
+function rP3(){
+  const ORDER = ['Gold','Silver','Bronze'];
+  const SCOLS = {Gold:'#f5a623',Silver:'#adb5bd',Bronze:'#b87333'};
+  const segs  = ORDER.map(s=>DATA.q3.find(r=>r.segment_client===s)).filter(Boolean);
+  const total = segs.reduce((s,r)=>s+r.ca,0);
+
+  destroyChart('c3d');
+  charts['c3d'] = new Chart(document.getElementById('c3d'),{
+    type:'doughnut',
+    data:{labels:segs.map(r=>r.segment_client),
+          datasets:[{data:segs.map(r=>r.ca), backgroundColor:segs.map(r=>SCOLS[r.segment_client]), borderWidth:0, hoverOffset:8}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}
+  });
+
+  document.getElementById('sl').innerHTML = segs.map(r=>`
+    <div class="seg-row">
+      <div class="seg-dot" style="background:${SCOLS[r.segment_client]}"></div>
+      <div style="font-weight:600;color:${SCOLS[r.segment_client]};min-width:56px">${r.segment_client}</div>
+      <div style="font-size:12px;color:var(--muted)">${fmtMAD(r.ca)}<br><small>${(r.ca/total*100).toFixed(1)}%</small></div>
+    </div>`).join('');
+
+  destroyChart('c3p');
+  charts['c3p'] = new Chart(document.getElementById('c3p'),{
+    type:'bar',
+    data:{labels:segs.map(r=>r.segment_client),
+          datasets:[{data:segs.map(r=>r.panier), backgroundColor:segs.map(r=>SCOLS[r.segment_client]), borderRadius:7, barThickness:50}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#7a8aaa'},grid:{color:'#1f2d47'}},
+              y:{ticks:{color:'#7a8aaa',callback:v=>fmtM(v)},grid:{color:'#1f2d47'}}}}
+  });
+
+  document.getElementById('t3').innerHTML = segs.map(r=>`<tr>
+    <td><span class="badge bg-${r.segment_client.toLowerCase()}">${r.segment_client}</span></td>
+    <td class="mono">${fmtN(r.nb)}</td>
+    <td class="mono">${fmtMAD(r.ca)}</td>
+    <td class="mono">${fmtMAD(r.panier)}</td>
+    <td class="mono" style="color:var(--muted)">${(r.ca/total*100).toFixed(1)}%</td>
+  </tr>`).join('');
+}
+
+// ── PAGE 4 ─────────────────────────────────────────────────────────────────────
+function rP4(){
+  const data = [...DATA.q4].sort((a,b)=>b.taux_retour-a.taux_retour);
+  const color = t => t>5?'#f7604d':t>3?'#f5a623':'#3ecf8e';
+
+  destroyChart('c4b');
+  charts['c4b'] = new Chart(document.getElementById('c4b'),{
+    type:'bar',
+    data:{labels:data.map(r=>r.categorie),
+          datasets:[
+            {label:'Taux retour %',data:data.map(r=>r.taux_retour), backgroundColor:data.map(r=>color(r.taux_retour)), borderRadius:5, barThickness:45},
+            {label:'Seuil critique 5%',data:data.map(()=>5),type:'line',borderColor:'rgba(247,96,77,.5)',borderDash:[6,4],borderWidth:2,pointRadius:0,fill:false},
+            {label:'Seuil vigilance 3%',data:data.map(()=>3),type:'line',borderColor:'rgba(245,166,35,.5)',borderDash:[4,4],borderWidth:2,pointRadius:0,fill:false},
+          ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#7a8aaa',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#7a8aaa'},grid:{color:'#1f2d47'}},
+              y:{ticks:{color:'#7a8aaa',callback:v=>v+'%'},grid:{color:'#1f2d47'},max:25}}}
+  });
+
+  document.getElementById('t4').innerHTML = data.map(r=>{
+    const c = r.taux_retour>5?'#f7604d':r.taux_retour>3?'#f5a623':'#3ecf8e';
+    const lbl = r.taux_retour>5?'⚠ Critique':r.taux_retour>3?'Vigilance':'✓ Normal';
+    return `<tr>
+      <td style="font-weight:600">${r.categorie}</td>
+      <td class="mono">${fmtN(r.nb_livrees)}</td>
+      <td class="mono">${fmtN(r.nb_retournees)}</td>
+      <td class="mono" style="color:${c};font-weight:600">${r.taux_retour}%</td>
+      <td style="color:${c}"><span class="dot" style="background:${c}"></span>${lbl}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── PAGE 5 ─────────────────────────────────────────────────────────────────────
+function rP5(){
+  const y = document.getElementById('p5y').value;
+  let data = DATA.q5;
+  if(y!=='all') data = data.filter(d=>String(d.annee)===y);
+
+  // Merge par (annee, mois) pour n'avoir qu'une barre par mois
+  const byM = {};
+  data.forEach(r=>{
+    const k=`${r.annee}-${String(r.mois).padStart(2,'0')}`;
+    if(!byM[k]) byM[k]={annee:r.annee,mois:r.mois,libelle_mois:r.libelle_mois,total:0,ramadan:false};
+    byM[k].total += r.montant_ttc;
+    if(r.periode_ramadan===true||r.periode_ramadan==='True') byM[k].ramadan=true;
+  });
+  const months = Object.values(byM).sort((a,b)=>a.annee*100+a.mois-(b.annee*100+b.mois));
+
+  const labels = months.map(r=>`${MFR[r.mois]} ${r.annee}`);
+  const bgColors = months.map(r=>r.ramadan?'rgba(245,166,35,.75)':'rgba(79,142,247,.45)');
+  const bdColors = months.map(r=>r.ramadan?'#f5a623':'#4f8ef7');
+
+  destroyChart('c5b');
+  charts['c5b'] = new Chart(document.getElementById('c5b'),{
+    type:'bar',
+    data:{labels, datasets:[{label:'CA Alimentation TTC',data:months.map(r=>r.total),
+      backgroundColor:bgColors,borderColor:bdColors,borderWidth:1.5,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#7a8aaa'}}},
+      scales:{x:{ticks:{color:'#7a8aaa',font:{size:10},maxRotation:45},grid:{color:'#1f2d47'}},
+              y:{ticks:{color:'#7a8aaa',callback:v=>fmtM(v)},grid:{color:'#1f2d47'}}}}
+  });
+
+  // Indice Ramadan vs moyenne hors-Ramadan
+  const nonRam = months.filter(r=>!r.ramadan);
+  const avg    = nonRam.reduce((s,r)=>s+r.total,0)/Math.max(nonRam.length,1);
+  const ramMon = months.filter(r=>r.ramadan);
+  const idxDat = ramMon.map(r=>({lbl:`${MFR[r.mois]} ${r.annee}`,idx:+(r.total/avg*100).toFixed(1)}));
+
+  destroyChart('c5i');
+  charts['c5i'] = new Chart(document.getElementById('c5i'),{
+    type:'bar',
+    data:{labels:idxDat.map(r=>r.lbl),
+          datasets:[
+            {label:'Indice Ramadan',data:idxDat.map(r=>r.idx),
+             backgroundColor:idxDat.map(r=>r.idx>=100?'rgba(62,207,142,.6)':'rgba(247,96,77,.6)'),
+             borderColor:idxDat.map(r=>r.idx>=100?'#3ecf8e':'#f7604d'),borderWidth:1.5,borderRadius:4},
+            {label:'Moyenne 100',data:idxDat.map(()=>100),type:'line',
+             borderColor:'rgba(122,138,170,.5)',borderDash:[5,5],pointRadius:0,fill:false}
+          ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#7a8aaa',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#7a8aaa',font:{size:11}},grid:{color:'#1f2d47'}},
+              y:{ticks:{color:'#7a8aaa'},grid:{color:'#1f2d47'}}}}
+  });
+
+  const avgIdx = idxDat.length ? (idxDat.reduce((s,r)=>s+r.idx,0)/idxDat.length).toFixed(1) : 'N/A';
+  const maxIdx = idxDat.length ? Math.max(...idxDat.map(r=>r.idx)).toFixed(1) : 'N/A';
+  const bestM  = idxDat.length ? idxDat.sort((a,b)=>b.idx-a.idx)[0].lbl : '—';
+  document.getElementById('ins').innerHTML = `
+    <p style="margin-bottom:14px">📊 <strong>Performance moyenne Ramadan :</strong>
+      <span style="color:var(--amber);font-weight:700"> ${avgIdx}</span>
+      <span style="color:var(--muted);font-size:12px"> (base 100 = mois normal)</span></p>
+    <p style="margin-bottom:14px">🔝 <strong>Meilleur mois Ramadan :</strong>
+      <span style="color:var(--green);font-weight:700"> ${bestM}</span>
+      <span style="color:var(--muted);font-size:12px"> (indice ${maxIdx})</span></p>
+    <p style="margin-bottom:14px">📦 <strong>Catégorie analysée :</strong> Alimentation uniquement<br>
+      <span style="color:var(--muted);font-size:12px">Les ventes d'épicerie et de boissons montrent une saisonnalité
+      marquée pendant le Ramadan, avec une hausse visible sur les produits locaux (huile d'olive, thé, couscous).</span></p>
+    <p>💡 <strong>Recommandation :</strong>
+      <span style="color:var(--muted);font-size:12px"> Anticiper les stocks alimentation 2 semaines avant le Ramadan
+      et cibler les clients Gold avec des promotions sur les produits marocains biologiques.</span></p>`;
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────────
+rP1();
+</script>
+</body>
+</html>
