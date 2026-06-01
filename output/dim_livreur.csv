@@ -1,0 +1,52 @@
+id_livreur,id_livreur_nk,nom_livreur,type_transport,zone_couverture
+1,-1,Livreur inconnu,Inconnu,Inconnue
+2,L001,Livreur L001,Camionnette,Nord
+3,L002,Livreur L002,Moto,Centre-Nord
+4,L003,Livreur L003,Véhicule léger,Centre
+5,L004,Livreur L004,Moto,Centre
+6,L005,Livreur L005,Camionnette,Nord
+7,L006,Livreur L006,Camionnette,Centre-Nord
+8,L007,Livreur L007,Camionnette,Nord
+9,L008,Livreur L008,Camionnette,Est
+10,L009,Livreur L009,Moto,Nord
+11,L010,Livreur L010,Moto,Centre
+12,L011,Livreur L011,Moto,Ouest
+13,L012,Livreur L012,Camionnette,Nord
+14,L013,Livreur L013,Camionnette,Centre
+15,L014,Livreur L014,Camionnette,Centre-Nord
+16,L015,Livreur L015,Camionnette,Ouest
+17,L016,Livreur L016,Véhicule léger,Centre
+18,L017,Livreur L017,Véhicule léger,Ouest
+19,L018,Livreur L018,Véhicule léger,Centre-Sud
+20,L019,Livreur L019,Moto,Centre-Sud
+21,L020,Livreur L020,Moto,Centre-Nord
+22,L021,Livreur L021,Véhicule léger,Sud
+23,L022,Livreur L022,Véhicule léger,Centre
+24,L023,Livreur L023,Moto,Centre-Sud
+25,L024,Livreur L024,Véhicule léger,Nord
+26,L025,Livreur L025,Moto,Est
+27,L026,Livreur L026,Moto,Sud
+28,L027,Livreur L027,Véhicule léger,Ouest
+29,L028,Livreur L028,Véhicule léger,Centre-Sud
+30,L029,Livreur L029,Moto,Centre-Nord
+31,L030,Livreur L030,Véhicule léger,Ouest
+32,L031,Livreur L031,Moto,Est
+33,L032,Livreur L032,Moto,Ouest
+34,L033,Livreur L033,Véhicule léger,Centre-Sud
+35,L034,Livreur L034,Camionnette,Ouest
+36,L035,Livreur L035,Véhicule léger,Ouest
+37,L036,Livreur L036,Moto,Centre-Nord
+38,L037,Livreur L037,Moto,Nord
+39,L038,Livreur L038,Camionnette,Centre
+40,L039,Livreur L039,Véhicule léger,Nord
+41,L040,Livreur L040,Moto,Centre-Sud
+42,L041,Livreur L041,Moto,Est
+43,L042,Livreur L042,Véhicule léger,Est
+44,L043,Livreur L043,Camionnette,Centre-Sud
+45,L044,Livreur L044,Véhicule léger,Centre
+46,L045,Livreur L045,Véhicule léger,Sud
+47,L046,Livreur L046,Moto,Centre-Nord
+48,L047,Livreur L047,Véhicule léger,Centre-Nord
+49,L048,Livreur L048,Camionnette,Centre-Nord
+50,L049,Livreur L049,Moto,Ouest
+51,L050,Livreur L050,Camionnette,Centre

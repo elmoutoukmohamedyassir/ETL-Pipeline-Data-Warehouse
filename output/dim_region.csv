@@ -1,0 +1,16 @@
+id_region,ville,province,region_admin,zone_geo,pays
+1,Tanger,Fahs-Anjra,Tanger-Tétouan-Al Hoceïma,Nord,Maroc
+2,Casablanca,Casablanca,Casablanca-Settat,Centre,Maroc
+3,Rabat,Rabat,Rabat-Salé-Kénitra,Centre,Maroc
+4,Fès,Fès,Fès-Meknès,Centre-Nord,Maroc
+5,Marrakech,Marrakech,Marrakech-Safi,Centre-Sud,Maroc
+6,Agadir,Agadir-Ida-Ou-Tanane,Souss-Massa,Sud,Maroc
+7,Oujda,Oujda-Angad,Oriental,Est,Maroc
+8,Meknès,El Hajeb,Fès-Meknès,Centre-Nord,Maroc
+9,Kenitra,Kenitra,Rabat-Salé-Kénitra,Centre,Maroc
+10,Tétouan,Tétouan,Tanger-Tétouan-Al Hoceïma,Nord,Maroc
+11,Nador,Nador,Oriental,Nord-Est,Maroc
+12,Béni Mellal,Béni Mellal,Béni Mellal-Khénifra,Centre,Maroc
+13,El Jadida,El Jadida,Casablanca-Settat,Centre-Ouest,Maroc
+14,Safi,Safi,Marrakech-Safi,Centre-Sud,Maroc
+15,Errachidia,Errachidia,Drâa-Tafilalet,Sud,Maroc

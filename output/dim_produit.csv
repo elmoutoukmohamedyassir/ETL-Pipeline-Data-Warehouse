@@ -1,0 +1,21 @@
+id_produit_sk,id_produit_nk,nom_produit,categorie,sous_categorie,marque,fournisseur,prix_standard,origine_pays,date_debut,date_fin,est_actif
+1,P001,iPhone 16 Pro 256Go,Electronique,Smartphones,Apple,Apple MENA,12999.0,USA,2026-06-01,9999-12-31,True
+2,P002,Samsung Galaxy S24,Electronique,Smartphones,Samsung,Samsung MENA,9999.0,Corée du Sud,2026-06-01,9999-12-31,True
+3,P003,MacBook Pro M3,Électronique,Ordinateurs,Apple,Apple MENA,24999.0,USA,2026-06-01,9999-12-31,True
+4,P004,Dell XPS 15,Électronique,Ordinateurs,Dell,Dell Africa,18999.0,USA,2026-06-01,9999-12-31,True
+5,P005,iPad Air M2,Électronique,Tablettes,Apple,Apple MENA,7999.0,USA,2026-06-01,9999-12-31,True
+6,P006,AirPods Pro,Electronique,Audio,Apple,Apple MENA,2999.0,USA,2026-06-01,9999-12-31,True
+7,P007,Sony WH-1000XM5,Électronique,Audio,Sony,Sony MENA,3499.0,Japon,2026-06-01,9999-12-31,True
+8,P008,Nike Air Max 270,Mode,Chaussures,Nike,Nike EMEA,1299.0,Vietnam,2026-06-01,9999-12-31,True
+9,P009,Adidas Ultraboost 23,Mode,Chaussures,Adidas,Adidas EMEA,1599.0,Allemagne,2026-06-01,9999-12-31,True
+10,P010,Zara Veste Homme,Mode,Vêtements,Zara,Inditex MENA,699.0,Espagne,2026-06-01,9999-12-31,True
+11,P011,H&M Robe Femme,Mode,Vêtements,H&M,H&M Africa,399.0,Bangladesh,2026-06-01,9999-12-31,True
+12,P012,Huile Olive Volubilis 1L,Alimentation,Épicerie,Volubilis,Volubilis SA,89.0,Maroc,2026-06-01,9999-12-31,True
+13,P013,Thé Menthe 200g,Alimentation,Boissons,Atay,Atay Maroc,45.0,Maroc,2026-06-01,9999-12-31,True
+14,P014,Couscous Royal 5kg,Alimentation,Épicerie,Royal,Royal Foods,120.0,Maroc,2026-06-01,9999-12-31,True
+15,P015,Argan Bio 100ml,Alimentation,Bio,Tifawin,Tifawin Bio,350.0,Maroc,2026-06-01,9999-12-31,True
+16,P016,PS5 Console,Electronique,Jeux Vidéo,Sony,Sony MENA,5999.0,Japon,2026-06-01,9999-12-31,True
+17,P017,Xbox Series X,Electronique,Jeux Vidéo,Microsoft,Microsoft MENA,5499.0,Chine,2026-06-01,9999-12-31,True
+18,P018,"LG OLED 55""",Électronique,Tv,LG,LG Africa,14999.0,Corée du Sud,2026-06-01,9999-12-31,True
+19,P019,Cafetière Nespresso,Electronique,Cuisine,Nespresso,Nespresso MENA,1299.0,Suisse,2026-06-01,9999-12-31,True
+20,P020,Robot Aspirateur Xiaomi,Electronique,Maison,Xiaomi,Xiaomi EMEA,2499.0,Chine,2026-06-01,9999-12-31,True
