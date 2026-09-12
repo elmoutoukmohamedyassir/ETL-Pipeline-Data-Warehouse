@@ -96,10 +96,29 @@ def run_pipeline(use_postgres: bool = False) -> dict:
             "dim_livreur": dim_livreur,
         }
 
-        if use_postgres:
+                if use_postgres:
             run_load_postgres(dims, fait_ventes, DB_URL)
         else:
             run_load_csv(dims, fait_ventes)
+
+        # ══════════════════════════════════════════════════════════════
+        # PHASE 4 — DATA QUALITY
+        # ══════════════════════════════════════════════════════════════
+        logger.info("\n─── PHASE 4 : DATA QUALITY ──────────────────────────────────")
+        if use_postgres:
+            logger.warning(
+                "[DATA QUALITY] Validation automatique actuellement disponible "
+                "uniquement en mode CSV (data_quality/validate_dwh.py lit output/). "
+                "Lancer manuellement des requêtes SQL de contrôle (sql/check_integrity.sql) "
+                "pour valider le mode PostgreSQL."
+            )
+        else:
+            from data_quality.validate_dwh import valider_dwh
+            dq_ok = valider_dwh(output_dir="output")
+            if not dq_ok:
+                raise RuntimeError(
+                    "[DATA QUALITY] Échec de la validation — vérifier les tables produites."
+                )
 
         # ══════════════════════════════════════════════════════════════
         # RÉSUMÉ
