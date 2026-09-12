@@ -279,8 +279,9 @@ def build_fait_ventes(df_commandes: pd.DataFrame,
     ].values[0]
     df["id_livreur_fk"] = df["id_livreur"].map(livreur_map).fillna(inconnu_sk).astype(int)
 
-    # ── Construction de la table de faits ─────────────────────────────────────
+        # ── Construction de la table de faits ─────────────────────────────────────
     fait = pd.DataFrame({
+        "id_commande":             df["id_commande"],   # clé naturelle — permet l'upsert incrémental
         "id_date":                df["id_date"],
         "id_produit":             df["id_produit"],
         "id_client":              df["id_client"],

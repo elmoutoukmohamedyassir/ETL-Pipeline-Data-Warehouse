@@ -136,6 +136,10 @@ DROP TABLE IF EXISTS dwh_mexora.fait_ventes CASCADE;
 CREATE TABLE dwh_mexora.fait_ventes (
     id_vente              BIGSERIAL   PRIMARY KEY,
 
+    -- Clé naturelle métier : permet l'upsert incrémental (ON CONFLICT)
+    -- au lieu d'un TRUNCATE + reload complet à chaque run.
+    id_commande            VARCHAR(30) NOT NULL UNIQUE,
+
     -- Clés étrangères vers les dimensions
     id_date               INTEGER     NOT NULL REFERENCES dwh_mexora.dim_temps(id_date),
     id_produit            INTEGER     NOT NULL REFERENCES dwh_mexora.dim_produit(id_produit_sk),
