@@ -1,0 +1,82 @@
+x-airflow-common: &airflow-common
+  build: .
+  environment:
+    AIRFLOW_HOME: /app/airflow_home
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+    DWH_HOST: dwh-postgres
+    DWH_PORT: "5432"
+    DWH_DATABASE: mexora_dwh
+    DWH_USER: postgres
+    DWH_PASSWORD: postgres
+  volumes:
+    - ./dags:/app/dags
+    - ./output:/app/output
+    - ./data:/app/data
+    - ./airflow_home:/app/airflow_home
+  depends_on:
+    airflow-postgres:
+      condition: service_healthy
+    dwh-postgres:
+      condition: service_healthy
+
+services:
+  # Base de métadonnées d'Airflow (interne à Airflow, pas le DWH métier)
+  airflow-postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 10
+
+  # Le Data Warehouse métier (dwh_mexora, staging_mexora, reporting_mexora)
+  dwh-postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mexora_dwh
+    ports:
+      - "5432:5432"
+    volumes:
+      - dwh_pgdata:/var/lib/postgresql/data
+      - ./sql/create_dwh.sql:/docker-entrypoint-initdb.d/01_create_dwh.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 10
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: airflow webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      - airflow-init
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: airflow scheduler
+    depends_on:
+      - airflow-init
+
+volumes:
+  airflow_pgdata:
+  dwh_pgdata:

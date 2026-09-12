@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+.git/
+.vscode/
+.pytest_cache/
+output/
+mlruns/
+airflow_home/
+.env
