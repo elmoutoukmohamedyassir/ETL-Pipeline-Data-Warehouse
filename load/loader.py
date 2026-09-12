@@ -61,37 +61,44 @@ def charger_dimension(df: pd.DataFrame, nom_table: str, engine,
 
 def charger_faits(df: pd.DataFrame, engine, schema: str = "dwh_mexora") -> None:
     """
-    Charge la table de faits dans PostgreSQL.
-    Stratégie : TRUNCATE + APPEND (vider puis recharger).
-    En production avec gros volumes, utiliser un UPSERT par batch via
-    sqlalchemy.dialects.postgresql.insert avec on_conflict_do_update.
+    Charge la table de faits dans PostgreSQL en UPSERT incrémental et idempotent.
+
+    Stratégie : INSERT ... ON CONFLICT (id_commande) DO UPDATE.
+      - Une commande jamais vue avant (nouvel id_commande)  → INSERT
+      - Une commande déjà présente (ex : correction de statut,
+        recalcul de montant) → UPDATE de la ligne existante
+      - Relancer le pipeline avec les mêmes données ne crée AUCUN doublon
+        (idempotence), et un nouveau batch de commandes s'ajoute sans
+        écraser l'historique déjà chargé (incrémental).
+
+    Remplace l'ancienne stratégie TRUNCATE + APPEND, qui perdait tout
+    l'historique à chaque run et empêchait le chargement incrémental.
     """
     import sqlalchemy
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-    # Tronquer d'abord pour éviter les doublons entre runs
+    table = sqlalchemy.Table(
+        "fait_ventes", sqlalchemy.MetaData(schema=schema),
+        autoload_with=engine,
+    )
+
+    colonnes = df.columns.tolist()
+    lignes = df.to_dict(orient="records")
+
+    CHUNK = 5000
+    total_upserted = 0
     try:
-        with engine.connect() as conn:
-            conn.execute(
-                sqlalchemy.text(
-                    f"TRUNCATE TABLE {schema}.fait_ventes RESTART IDENTITY CASCADE"
+        with engine.begin() as conn:
+            for i in range(0, len(lignes), CHUNK):
+                batch = lignes[i:i + CHUNK]
+                stmt = pg_insert(table).values(batch)
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["id_commande"],
+                    set_={col: getattr(stmt.excluded, col) for col in colonnes if col != "id_commande"},
                 )
-            )
-            conn.commit()
-        logger.info("[LOAD PG]  fait_ventes tronquée avant rechargement")
-    except Exception:
-        logger.warning("[LOAD PG]  Impossible de tronquer fait_ventes (table inexistante ?)")
-
-    try:
-        df.to_sql(
-            name="fait_ventes",
-            con=engine,
-            schema=schema,
-            if_exists="append",
-            index=False,
-            method="multi",
-            chunksize=5000,
-        )
-        logger.info(f"[LOAD PG]  fait_ventes               | {len(df):>6} lignes (append)")
+                conn.execute(stmt)
+                total_upserted += len(batch)
+        logger.info(f"[LOAD PG]  fait_ventes               | {total_upserted:>6} lignes (upsert incrémental)")
     except Exception as e:
         logger.error(f"[LOAD PG]  ERREUR fait_ventes : {e}")
         raise
